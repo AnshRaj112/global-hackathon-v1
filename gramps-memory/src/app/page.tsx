@@ -14,36 +14,41 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="loading-container flex items-center justify-center">
+        <div className="loading-text">Loading...</div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="max-w-md w-full space-y-8 text-center">
+      <div className="auth-container flex items-center justify-center px-4 sm:px-6 lg:px-8">
+        <div className="auth-card max-w-2xl w-full p-8 space-y-8 text-center">
           <div>
-            <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
+            <h2 className="auth-title text-center">
               Welcome to Gramps Memory
             </h2>
-            <p className="mt-2 text-sm text-gray-600">
-              Please sign in to access your todos
+            <p className="auth-subtitle mt-4 text-center">
+              Preserve and share your precious memories with your family
+            </p>
+            <p className="auth-subtitle mt-4 text-center">
+              Create, organize, and cherish your life's most important moments. 
+              Share stories and memories with your loved ones in a beautiful, 
+              easy-to-use platform designed for seniors.
             </p>
           </div>
           <div className="space-y-4">
             <Link
               href="/login"
-              className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="auth-button w-full inline-block"
             >
               Sign In
             </Link>
             <Link
               href="/signup"
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+              className="auth-button-secondary w-full inline-block"
             >
-              Sign Up
+              Create Account
             </Link>
           </div>
         </div>
@@ -52,18 +57,18 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="bg-white shadow">
+    <div className="min-h-screen main-content">
+      <nav className="enhanced-nav">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">Gramps Memory</h1>
+              <h1 className="nav-title">Gramps Memory</h1>
             </div>
             <div className="flex items-center space-x-4">
-              <span className="text-sm text-gray-700">Welcome, {getDisplayName()}</span>
+              <span className="nav-user">Welcome, {getDisplayName()}</span>
               <button
                 onClick={() => signOut()}
-                className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-md text-sm font-medium"
+                className="nav-signout"
               >
                 Sign Out
               </button>
@@ -74,7 +79,9 @@ export default function Home() {
 
       <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
-          <TodoList />
+          <div className="content-card p-6">
+            <TodoList />
+          </div>
         </div>
       </main>
     </div>
