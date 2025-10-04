@@ -5,9 +5,11 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import BlogPostViewer from './BlogPostViewer';
 import FamilyMembers from './FamilyMembers';
+import StreakDisplay from './StreakDisplay';
 import { GroqService, GroqMessage } from '../utils/groq';
 import { EmailService, FamilyMember } from '../utils/email';
 import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
+import { StreakService } from '../utils/streak';
 
 interface Message {
   id: string;
@@ -49,6 +51,8 @@ export default function MemoryConversation() {
   const [showFamilyMembers, setShowFamilyMembers] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [databaseError, setDatabaseError] = useState<string | null>(null);
+  const [showStreak, setShowStreak] = useState(false);
+  const [streakNotification, setStreakNotification] = useState<string | null>(null);
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -294,6 +298,30 @@ export default function MemoryConversation() {
 
       if (data && data[0]) {
         setMemories([data[0], ...memories]);
+        
+        // Update streak after successful memory save
+        try {
+          const updatedStreak = await StreakService.updateStreak(user.id);
+          if (updatedStreak) {
+            // Show streak notification
+            if (updatedStreak.current_streak === 1) {
+              setStreakNotification("🎉 First memory recorded! Your journey begins!");
+            } else if (updatedStreak.current_streak === 7) {
+              setStreakNotification("🔥 Amazing! 7 days in a row! You're on fire!");
+            } else if (updatedStreak.current_streak === 30) {
+              setStreakNotification("💪 Incredible! 30 days straight! You're a memory champion!");
+            } else if (updatedStreak.current_streak > 1) {
+              setStreakNotification(`🔥 ${updatedStreak.current_streak} days in a row! Keep it up!`);
+            }
+            
+            // Clear notification after 5 seconds
+            setTimeout(() => setStreakNotification(null), 5000);
+          }
+        } catch (streakError) {
+          console.error('Error updating streak:', streakError);
+          // Don't fail the memory save if streak update fails
+        }
+        
         return data[0].id;
       }
     } catch (error) {
@@ -595,6 +623,43 @@ export default function MemoryConversation() {
     return user.user_metadata?.full_name || user.email || 'User';
   };
 
+  if (showStreak) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-main">My Progress</h2>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowStreak(false)}
+              className="px-4 py-2 btn-primary"
+            >
+              Back to Conversations
+            </button>
+            <button
+              onClick={() => { setShowStreak(false); setShowMemories(true); }}
+              className="px-4 py-2 btn-primary"
+            >
+              View Memories
+            </button>
+            <button
+              onClick={() => { setShowStreak(false); setShowBlogPosts(true); }}
+              className="px-4 py-2 btn-primary"
+            >
+              View Blog Posts
+            </button>
+            <button
+              onClick={() => { setShowStreak(false); setShowFamilyMembers(true); }}
+              className="px-4 py-2 btn-secondary"
+            >
+              Family Members
+            </button>
+          </div>
+        </div>
+        <StreakDisplay />
+      </div>
+    );
+  }
+
   if (showFamilyMembers) {
     return (
       <div className="space-y-6">
@@ -618,6 +683,12 @@ export default function MemoryConversation() {
               className="px-4 py-2 btn-primary"
             >
               View Blog Posts
+            </button>
+            <button
+              onClick={() => { setShowFamilyMembers(false); setShowStreak(true); }}
+              className="px-4 py-2 btn-secondary"
+            >
+              My Progress
             </button>
           </div>
         </div>
@@ -650,6 +721,12 @@ export default function MemoryConversation() {
             >
               Family Members
             </button>
+            <button
+              onClick={() => { setShowBlogPosts(false); setShowStreak(true); }}
+              className="px-4 py-2 btn-secondary"
+            >
+              My Progress
+            </button>
           </div>
         </div>
         <BlogPostViewer />
@@ -680,6 +757,12 @@ export default function MemoryConversation() {
               className="px-4 py-2 btn-secondary"
             >
               Family Members
+            </button>
+            <button
+              onClick={() => { setShowMemories(false); setShowStreak(true); }}
+              className="px-4 py-2 btn-secondary"
+            >
+              My Progress
             </button>
           </div>
         </div>
@@ -749,6 +832,11 @@ export default function MemoryConversation() {
           <p className="text-lg text-secondary mb-8">
             Let&apos;s preserve your precious memories together. Choose a topic to start our conversation.
           </p>
+          
+          {/* Quick Streak Display */}
+          <div className="mb-8">
+            <StreakDisplay />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -783,6 +871,15 @@ export default function MemoryConversation() {
           >
             View Blog Posts
           </button>
+          <button
+            onClick={() => setShowStreak(true)}
+            className="px-6 py-3 btn-primary"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            My Progress
+          </button>
         </div>
       </div>
     );
@@ -790,6 +887,22 @@ export default function MemoryConversation() {
 
   return (
     <div className="space-y-6">
+      {/* Streak Notification */}
+      {streakNotification && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 animate-pulse">
+          <div className="flex items-center">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <p className="text-sm font-medium text-green-800">{streakNotification}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-main">{currentTopic.title}</h2>
@@ -834,6 +947,15 @@ export default function MemoryConversation() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
             </svg>
             Family ({familyMembers.length})
+          </button>
+          <button
+            onClick={() => setShowStreak(true)}
+            className="px-4 py-2 btn-secondary"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+            </svg>
+            My Progress
           </button>
         </div>
       </div>

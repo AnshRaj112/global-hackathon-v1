@@ -65,6 +65,30 @@ CREATE TABLE IF NOT EXISTS email_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create user_streaks table for tracking daily memory recording streaks
+CREATE TABLE IF NOT EXISTS user_streaks (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  current_streak INTEGER DEFAULT 0,
+  longest_streak INTEGER DEFAULT 0,
+  last_activity_date DATE,
+  total_memories INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Create daily_activities table for tracking daily memory recording
+CREATE TABLE IF NOT EXISTS daily_activities (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  activity_date DATE NOT NULL,
+  memories_recorded INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id, activity_date)
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
@@ -72,6 +96,8 @@ ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_streaks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE daily_activities ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for memories
 CREATE POLICY "Users can view their own memories" ON memories
@@ -192,3 +218,34 @@ CREATE INDEX IF NOT EXISTS idx_family_members_email ON family_members(email);
 CREATE INDEX IF NOT EXISTS idx_email_logs_user_id ON email_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_email_logs_blog_post_id ON email_logs(blog_post_id);
 CREATE INDEX IF NOT EXISTS idx_email_logs_family_member_id ON email_logs(family_member_id);
+
+-- Create RLS policies for user_streaks
+CREATE POLICY "Users can view their own streaks" ON user_streaks
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own streaks" ON user_streaks
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own streaks" ON user_streaks
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own streaks" ON user_streaks
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for daily_activities
+CREATE POLICY "Users can view their own daily activities" ON daily_activities
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own daily activities" ON daily_activities
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own daily activities" ON daily_activities
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own daily activities" ON daily_activities
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Create indexes for streak tables
+CREATE INDEX IF NOT EXISTS idx_user_streaks_user_id ON user_streaks(user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_activities_user_id ON daily_activities(user_id);
+CREATE INDEX IF NOT EXISTS idx_daily_activities_date ON daily_activities(activity_date);
