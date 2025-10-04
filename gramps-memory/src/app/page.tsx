@@ -1,11 +1,14 @@
 'use client';
 
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
 import MemoryConversation from '../components/MemoryConversation';
+import VoiceConversation from '../components/VoiceConversation';
 
 export default function Home() {
   const { user, signOut, loading } = useAuth();
+  const [activeTab, setActiveTab] = useState<'text' | 'voice'>('text');
 
   const getDisplayName = () => {
     if (!user) return '';
@@ -80,7 +83,36 @@ export default function Home() {
       <main className="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="content-card p-6">
-            <MemoryConversation />
+            {/* Tab Navigation */}
+            <div className="mb-6">
+              <div className="border-b border-gray-200">
+                <nav className="-mb-px flex space-x-8">
+                  <button
+                    onClick={() => setActiveTab('text')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'text'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    📝 Text Conversations
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('voice')}
+                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                      activeTab === 'voice'
+                        ? 'border-indigo-500 text-indigo-600'
+                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    🎤 Voice Conversations
+                  </button>
+                </nav>
+              </div>
+            </div>
+
+            {/* Tab Content */}
+            {activeTab === 'text' ? <MemoryConversation /> : <VoiceConversation />}
           </div>
         </div>
       </main>

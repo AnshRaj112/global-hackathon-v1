@@ -1,6 +1,6 @@
-# Gramps Memory - Supabase Authentication App
+# Gramps Memory - AI-Powered Memory Preservation Platform
 
-A Next.js application with Supabase authentication, featuring login/signup pages with Google OAuth integration and a todos example.
+A Next.js application that helps elderly users preserve and share their precious memories through AI-powered conversations, featuring both text and voice interactions with automatic blog post generation and family sharing.
 
 ## Features
 
@@ -10,19 +10,42 @@ A Next.js application with Supabase authentication, featuring login/signup pages
   - Protected routes
   - Session management
 
-- 📝 **Todos Example**
-  - Display todos from Supabase database
-  - User-specific data access
+- 💬 **AI Memory Conversations**
+  - Text-based conversations with Groq AI
+  - Voice conversations with Google Gemini AI
+  - Intelligent follow-up questions
+  - Memory categorization and organization
+
+- 🎤 **Voice Features**
+  - Speech-to-text using Web Speech API
+  - Text-to-speech responses
+  - Natural voice conversations
+  - Hands-free memory sharing
+
+- 📝 **Blog Post Generation**
+  - Automatic conversion of conversations to blog posts
+  - Beautiful formatting with markdown
+  - AI-enhanced storytelling
+  - Professional presentation
+
+- 👨‍👩‍👧‍👦 **Family Sharing**
+  - Add family members with contact information
+  - Automatic email distribution of blog posts
+  - Relationship categorization
+  - Privacy controls
 
 - 🎨 **Modern UI**
   - Responsive design with Tailwind CSS
   - Clean, professional interface
   - Loading states and error handling
+  - Tabbed interface for different conversation types
 
 ## Prerequisites
 
 - Node.js 18+ 
 - A Supabase account and project
+- A Google AI Studio account (for Gemini API)
+- A Groq account (for text conversations)
 
 ## Setup Instructions
 
@@ -44,47 +67,53 @@ npm install
 Create a `.env.local` file in the `gramps-memory` directory:
 
 ```env
+# Supabase Configuration
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_project_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+
+# Groq API Configuration (for text conversations)
+GROQ_API_KEY=your_groq_api_key_here
+
+# Gemini API Configuration (for voice conversations)
+GEMINI_API_KEY=your_gemini_api_key_here
+
+# Email Configuration (for sending blog posts to family)
+SMTP_HOST=your_smtp_host_here
+SMTP_PORT=587
+SMTP_USER=your_smtp_username_here
+SMTP_PASS=your_smtp_password_here
+SMTP_FROM=your_from_email_here
 ```
+
+#### Getting API Keys
+
+**Groq API Key:**
+1. Go to [console.groq.com](https://console.groq.com)
+2. Sign up for a free account
+3. Navigate to API Keys section
+4. Create a new API key
+
+**Gemini API Key:**
+1. Go to [makersuite.google.com/app/apikey](https://makersuite.google.com/app/apikey)
+2. Sign in with your Google account
+3. Click "Create API Key"
+4. Copy the generated API key
 
 ### 4. Database Setup
 
-In your Supabase dashboard, go to **SQL Editor** and run this query to create the todos table:
+In your Supabase dashboard, go to **SQL Editor** and run the database schema from `database-schema.sql`. This will create all necessary tables for memories, conversations, blog posts, and family members.
 
-```sql
--- Create todos table
-CREATE TABLE todos (
-  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  description TEXT,
-  completed BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
-);
+### 5. Quick Setup Script
 
--- Enable Row Level Security
-ALTER TABLE todos ENABLE ROW LEVEL SECURITY;
+Run the voice feature setup script to get started quickly:
 
--- Create policy to allow users to see only their own todos
-CREATE POLICY "Users can view their own todos" ON todos
-  FOR SELECT USING (auth.uid() = user_id);
-
--- Create policy to allow users to insert their own todos
-CREATE POLICY "Users can insert their own todos" ON todos
-  FOR INSERT WITH CHECK (auth.uid() = user_id);
-
--- Create policy to allow users to update their own todos
-CREATE POLICY "Users can update their own todos" ON todos
-  FOR UPDATE USING (auth.uid() = user_id);
-
--- Create policy to allow users to delete their own todos
-CREATE POLICY "Users can delete their own todos" ON todos
-  FOR DELETE USING (auth.uid() = user_id);
+```bash
+node setup-voice-feature.js
 ```
 
-### 5. Google OAuth Setup (Optional)
+This will create your `.env.local` file with the correct structure and guide you through API key setup.
+
+### 6. Google OAuth Setup (Optional)
 
 1. Go to [Google Cloud Console](https://console.cloud.google.com/)
 2. Create a new project or select existing one
@@ -97,7 +126,7 @@ CREATE POLICY "Users can delete their own todos" ON todos
 7. In Supabase dashboard, go to **Authentication** > **Providers** > **Google**
 8. Enable Google provider and add your Client ID and Client Secret
 
-### 6. Run the Application
+### 7. Run the Application
 
 ```bash
 npm run dev
@@ -137,12 +166,34 @@ gramps-memory/
 3. **Protected Routes**: The main page shows different content based on authentication status
 4. **Sign Out**: Users can sign out from the main page
 
-### Todos Example
+### Memory Conversations
 
-The main page demonstrates:
-- Fetching data from Supabase
-- User-specific data access
-- Authentication state management
+The application offers two types of AI-powered conversations:
+
+#### Text Conversations
+- Choose from predefined topics (Childhood, Family, Career, etc.)
+- Type responses to AI questions
+- Automatic memory saving
+- Blog post generation
+
+#### Voice Conversations
+- Click the microphone button to start recording
+- Speak naturally about your memories
+- AI responds with voice
+- Automatic transcription and blog post creation
+
+### Family Sharing
+
+1. **Add Family Members**: Enter names, emails, and relationships
+2. **Automatic Sharing**: Blog posts are automatically emailed to family members
+3. **Privacy Control**: Only share what you want with whom you want
+
+### Blog Post Generation
+
+- Conversations are automatically converted to beautiful blog posts
+- AI-enhanced storytelling and formatting
+- Professional presentation for family sharing
+- Markdown formatting for easy reading
 
 ## Customization
 
