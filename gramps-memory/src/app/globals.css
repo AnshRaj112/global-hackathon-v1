@@ -1,8 +1,14 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #FFF8E7;
+  --foreground: #333333;
+  --primary: #4EA199;
+  --secondary: #F29E85;
+  --text-main: #333333;
+  --text-secondary: #666666;
+  --voice-user: #A6D8D4;
+  --voice-ai: #8ABAD3;
 }
 
 @theme inline {
@@ -14,8 +20,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #FFF8E7;
+    --foreground: #333333;
   }
 }
 
@@ -352,6 +358,109 @@ body {
   border-radius: 16px;
   box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Voice conversation bubble styles */
+.voice-bubble-user {
+  background: var(--voice-user);
+  color: var(--text-main);
+  border-radius: 18px 18px 4px 18px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.voice-bubble-ai {
+  background: var(--voice-ai);
+  color: var(--text-main);
+  border-radius: 18px 18px 18px 4px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+/* Memory conversation bubble styles */
+.memory-bubble-user {
+  background: var(--voice-user);
+  color: var(--text-main);
+  border-radius: 18px 18px 4px 18px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+.memory-bubble-ai {
+  background: var(--voice-ai);
+  color: var(--text-main);
+  border-radius: 18px 18px 18px 4px;
+  padding: 12px 16px;
+  margin: 8px 0;
+  max-width: 80%;
+  word-wrap: break-word;
+}
+
+/* Button styles using theme colors - Enhanced for older users */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  padding: 16px 32px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(78, 161, 153, 0.3);
+  min-height: 56px;
+  min-width: 120px;
+}
+
+.btn-primary:hover {
+  background: #3d7d75;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(78, 161, 153, 0.4);
+}
+
+.btn-secondary {
+  background: white;
+  color: var(--secondary);
+  border: 2px solid var(--secondary);
+  border-radius: 12px;
+  padding: 14px 30px;
+  font-weight: 600;
+  font-size: 1.1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  min-height: 56px;
+  min-width: 120px;
+}
+
+.btn-secondary:hover {
+  background: var(--secondary);
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(242, 158, 133, 0.3);
+}
+
+/* Text styles using theme colors */
+.text-main {
+  color: var(--text-main);
+}
+
+.text-secondary {
+  color: var(--text-secondary);
+}
+
+/* Card styles */
+.card {
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 24px;
 }
 
 /* Responsive adjustments */

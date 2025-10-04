@@ -7,6 +7,7 @@ import BlogPostViewer from './BlogPostViewer';
 import FamilyMembers from './FamilyMembers';
 import { GroqService, GroqMessage } from '../utils/groq';
 import { EmailService, FamilyMember } from '../utils/email';
+import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
 
 interface Message {
   id: string;
@@ -33,94 +34,8 @@ interface Conversation {
   updated_at: string;
 }
 
-interface ConversationTopic {
-  id: string;
-  title: string;
-  description: string;
-  prompts: string[];
-  category: string;
-}
-
-const CONVERSATION_TOPICS: ConversationTopic[] = [
-  {
-    id: 'childhood',
-    title: 'Childhood Memories',
-    description: 'Share stories from your early years',
-    category: 'childhood',
-    prompts: [
-      "Tell me about your childhood home. What was it like?",
-      "What games did you play as a child?",
-      "Who were your best friends growing up?",
-      "What was your favorite subject in school?",
-      "Tell me about a special holiday or celebration from your childhood."
-    ]
-  },
-  {
-    id: 'family',
-    title: 'Family Stories',
-    description: 'Preserve your family history',
-    category: 'family',
-    prompts: [
-      "Tell me about your parents. What were they like?",
-      "Do you have any siblings? What was your relationship like?",
-      "Tell me about your grandparents. What stories did they share with you?",
-      "What family traditions do you remember?",
-      "Tell me about a family vacation or trip that was special."
-    ]
-  },
-  {
-    id: 'career',
-    title: 'Career & Work',
-    description: 'Share your professional journey',
-    category: 'career',
-    prompts: [
-      "What was your first job? How did you get it?",
-      "Tell me about your career path. How did you choose your profession?",
-      "What was your favorite job and why?",
-      "Tell me about a challenging project or achievement at work.",
-      "What advice would you give to someone starting their career?"
-    ]
-  },
-  {
-    id: 'love',
-    title: 'Love & Relationships',
-    description: 'Stories of love and friendship',
-    category: 'love',
-    prompts: [
-      "How did you meet your spouse/partner?",
-      "Tell me about your wedding day.",
-      "What's the secret to a long-lasting relationship?",
-      "Tell me about your closest friends throughout life.",
-      "What's the most romantic thing that ever happened to you?"
-    ]
-  },
-  {
-    id: 'adventures',
-    title: 'Adventures & Travel',
-    description: 'Your life adventures and travels',
-    category: 'adventures',
-    prompts: [
-      "What's the most exciting trip you've ever taken?",
-      "Tell me about a place you've always wanted to visit.",
-      "What's the most interesting person you've met while traveling?",
-      "Tell me about a time you tried something new or adventurous.",
-      "What's your favorite place in the world and why?"
-    ]
-  },
-  {
-    id: 'wisdom',
-    title: 'Life Lessons & Wisdom',
-    description: 'Share the wisdom you&apos;ve gained',
-    category: 'wisdom',
-    prompts: [
-      "What's the most important lesson life has taught you?",
-      "If you could give advice to your younger self, what would it be?",
-      "What values are most important to you?",
-      "Tell me about a time you overcame a difficult challenge.",
-      "What makes you most proud in life?"
-    ]
-  }
-];
+// Get daily conversation topics
+const getConversationTopics = () => getDailyConversationTopics();
 
 export default function MemoryConversation() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -684,23 +599,23 @@ export default function MemoryConversation() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Family Members</h2>
+          <h2 className="text-2xl font-bold text-main">Family Members</h2>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowFamilyMembers(false)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              className="px-4 py-2 btn-primary"
             >
               Back to Conversations
             </button>
             <button
               onClick={() => { setShowFamilyMembers(false); setShowMemories(true); }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="px-4 py-2 btn-primary"
             >
               View Memories
             </button>
             <button
               onClick={() => { setShowFamilyMembers(false); setShowBlogPosts(true); }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-4 py-2 btn-primary"
             >
               View Blog Posts
             </button>
@@ -715,23 +630,23 @@ export default function MemoryConversation() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Your Blog Posts</h2>
+          <h2 className="text-2xl font-bold text-main">Your Blog Posts</h2>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowBlogPosts(false)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              className="px-4 py-2 btn-primary"
             >
               Back to Conversations
             </button>
             <button
               onClick={() => { setShowBlogPosts(false); setShowMemories(true); }}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+              className="px-4 py-2 btn-primary"
             >
               View Memories
             </button>
             <button
               onClick={() => { setShowBlogPosts(false); setShowFamilyMembers(true); }}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-4 py-2 btn-secondary"
             >
               Family Members
             </button>
@@ -746,23 +661,23 @@ export default function MemoryConversation() {
     return (
       <div className="space-y-6">
         <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-gray-900">Your Memories</h2>
+          <h2 className="text-2xl font-bold text-main">Your Memories</h2>
           <div className="flex space-x-2">
             <button
               onClick={() => setShowMemories(false)}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+              className="px-4 py-2 btn-primary"
             >
               Back to Conversations
             </button>
             <button
               onClick={() => { setShowMemories(false); setShowBlogPosts(true); }}
-              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              className="px-4 py-2 btn-primary"
             >
               View Blog Posts
             </button>
             <button
               onClick={() => { setShowMemories(false); setShowFamilyMembers(true); }}
-              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+              className="px-4 py-2 btn-secondary"
             >
               Family Members
             </button>
@@ -771,15 +686,15 @@ export default function MemoryConversation() {
 
         <div className="grid gap-4">
           {memories.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
+            <div className="text-center py-8 text-secondary">
               No memories yet. Start a conversation to create your first memory!
             </div>
           ) : (
             memories.map((memory) => (
               <div key={memory.id} className="bg-white p-6 rounded-lg shadow border">
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-gray-900">{memory.title}</h3>
-                  <span className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded">
+                  <h3 className="text-lg font-semibold text-main">{memory.title}</h3>
+                  <span className="text-sm text-secondary bg-secondary bg-opacity-20 px-2 py-1 rounded">
                     {memory.category}
                   </span>
                 </div>
@@ -828,25 +743,28 @@ export default function MemoryConversation() {
         )}
         
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          <h2 className="text-3xl font-bold text-main mb-4">
             Welcome, {getDisplayName()}!
           </h2>
-          <p className="text-lg text-gray-600 mb-8">
+          <p className="text-lg text-secondary mb-8">
             Let&apos;s preserve your precious memories together. Choose a topic to start our conversation.
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {CONVERSATION_TOPICS.map((topic) => (
+          {getConversationTopics().map((topic) => (
             <div
               key={topic.id}
-              className="bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-shadow cursor-pointer"
+              className="card hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => startConversation(topic)}
             >
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">{topic.title}</h3>
-              <p className="text-gray-600 mb-4">{topic.description}</p>
-              <div className="text-sm text-indigo-600 font-medium">
-                Start Conversation →
+              <h3 className="text-xl font-semibold text-main mb-2">{topic.title}</h3>
+              <p className="text-secondary mb-4">{topic.description}</p>
+              <div className="text-sm text-primary font-medium flex items-center">
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Start Conversation
               </div>
             </div>
           ))}
@@ -854,22 +772,16 @@ export default function MemoryConversation() {
 
         <div className="text-center space-x-4">
           <button
-            onClick={() => setShowMemories(true)}
-            className="px-6 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            onClick={() => setShowFamilyMembers(true)}
+            className="px-6 py-3 btn-secondary"
           >
-            View My Memories ({memories.length})
+            Family Members ({familyMembers.length})
           </button>
           <button
             onClick={() => setShowBlogPosts(true)}
-            className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-6 py-3 btn-primary"
           >
             View Blog Posts
-          </button>
-          <button
-            onClick={() => setShowFamilyMembers(true)}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-          >
-            Family Members ({familyMembers.length})
           </button>
         </div>
       </div>
@@ -880,48 +792,55 @@ export default function MemoryConversation() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{currentTopic.title}</h2>
-          <p className="text-gray-600">{currentTopic.description}</p>
+          <h2 className="text-2xl font-bold text-main">{currentTopic.title}</h2>
+          <p className="text-secondary">{currentTopic.description}</p>
         </div>
         <div className="flex space-x-2">
           <button
             onClick={() => setCurrentTopic(null)}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            className="px-4 py-2 btn-primary"
           >
             Back to Topics
           </button>
           <button
             onClick={generateBlogPostFromConversation}
             disabled={isLoading || !currentConversation || messages.length < 2}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             title="This will create a blog post from your actual conversation"
           >
-            {isLoading ? 'Creating...' : '📝 Create Blog Post'}
-          </button>
-          <button
-            onClick={() => setShowMemories(true)}
-            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-          >
-            My Memories
+            {isLoading ? 'Creating...' : (
+              <>
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Create Blog Post
+              </>
+            )}
           </button>
           <button
             onClick={() => setShowBlogPosts(true)}
-            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="px-4 py-2 btn-primary"
           >
-            Blog Posts
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+            </svg>
+            View Blog Posts
           </button>
           <button
             onClick={() => setShowFamilyMembers(true)}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-4 py-2 btn-secondary"
           >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
             Family ({familyMembers.length})
           </button>
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow border h-96 flex flex-col">
+      <div className="card h-96 flex flex-col">
         <div className="p-4 border-b border-gray-200">
-          <h3 className="font-semibold text-gray-900">Conversation</h3>
+          <h3 className="font-semibold text-main">Text Conversation</h3>
         </div>
         
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -931,10 +850,10 @@ export default function MemoryConversation() {
               className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
             >
               <div
-                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                className={`max-w-xs lg:max-w-md ${
                   message.role === 'user'
-                    ? 'bg-indigo-600 text-white'
-                    : 'bg-gray-100 text-black'
+                    ? 'memory-bubble-user'
+                    : 'memory-bubble-ai'
                 }`}
               >
                 <p className="text-sm">{message.content}</p>
@@ -946,9 +865,9 @@ export default function MemoryConversation() {
           ))}
           {isLoading && (
             <div className="flex justify-start">
-              <div className="bg-gray-100 text-gray-900 px-4 py-2 rounded-lg">
+              <div className="memory-bubble-ai">
                 <div className="flex space-x-1">
-                  <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-secondary rounded-full animate-bounce"></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
                 </div>
@@ -958,33 +877,35 @@ export default function MemoryConversation() {
           <div ref={messagesEndRef} />
         </div>
 
-        <form onSubmit={handleSendMessage} className="p-4 border-t border-black-200">
-          <div className="flex space-x-2">
-            <input
-              type="text"
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Share your memory..."
-              className="flex-1 px-3 py-2 border border-black-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-black"
-              disabled={isLoading}
-            />
-            <button
-              type="submit"
-              disabled={isLoading || !userInput.trim()}
-              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={() => {
-                console.log('Send button clicked:', { userInput, isLoading, currentConversation: !!currentConversation });
-              }}
-            >
-              {isLoading ? 'Sending...' : 'Send'}
-            </button>
-          </div>
-        </form>
+        <div className="p-4 border-t border-gray-200">
+          <form onSubmit={handleSendMessage}>
+            <div className="flex space-x-2">
+              <input
+                type="text"
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Share your memory..."
+                className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary text-main"
+                disabled={isLoading}
+              />
+              <button
+                type="submit"
+                disabled={isLoading || !userInput.trim()}
+                className="px-6 py-3 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={() => {
+                  console.log('Send button clicked:', { userInput, isLoading, currentConversation: !!currentConversation });
+                }}
+              >
+                {isLoading ? 'Sending...' : 'Send'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h4 className="font-semibold text-blue-900 mb-2">Conversation Tips:</h4>
-        <ul className="text-sm text-blue-800 space-y-1">
+        <h4 className="font-semibold text-primary mb-2">Text Conversation Tips:</h4>
+        <ul className="text-sm text-primary space-y-1">
           <li>• Take your time and share as much detail as you&apos;d like</li>
           <li>• Don&apos;t worry about perfect grammar or structure</li>
           <li>• Feel free to go off-topic if a memory leads you somewhere else</li>

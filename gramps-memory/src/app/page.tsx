@@ -89,23 +89,29 @@ export default function Home() {
                 <nav className="-mb-px flex space-x-8">
                   <button
                     onClick={() => setActiveTab('text')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-4 px-6 border-b-2 font-medium text-lg flex items-center min-h-[60px] ${
                       activeTab === 'text'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-secondary hover:text-main hover:border-gray-300'
                     }`}
                   >
-                    📝 Text Conversations
+                    <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Text Conversations
                   </button>
                   <button
                     onClick={() => setActiveTab('voice')}
-                    className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    className={`py-4 px-6 border-b-2 font-medium text-lg flex items-center min-h-[60px] ${
                       activeTab === 'voice'
-                        ? 'border-indigo-500 text-indigo-600'
-                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                        ? 'border-primary text-primary'
+                        : 'border-transparent text-secondary hover:text-main hover:border-gray-300'
                     }`}
                   >
-                    🎤 Voice Conversations
+                    <svg className="w-6 h-6 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                    </svg>
+                    Voice Conversations
                   </button>
                 </nav>
               </div>

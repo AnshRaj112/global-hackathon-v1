@@ -110,18 +110,18 @@ export default function FamilyMembers() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Family Members</h2>
+        <h2 className="text-2xl font-bold text-main">Family Members</h2>
         <button
           onClick={() => setShowAddForm(!showAddForm)}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          className="px-4 py-2 btn-primary"
         >
           {showAddForm ? 'Cancel' : 'Add Family Member'}
         </button>
       </div>
 
       {showAddForm && (
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Add New Family Member</h3>
+        <div className="card">
+          <h3 className="text-lg font-semibold text-main mb-4">Add New Family Member</h3>
           <form onSubmit={addFamilyMember} className="space-y-4">
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
@@ -178,14 +178,14 @@ export default function FamilyMembers() {
               <button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50"
+                className="px-4 py-2 btn-primary disabled:opacity-50"
               >
                 {loading ? 'Adding...' : 'Add Family Member'}
               </button>
               <button
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                className="px-4 py-2 btn-primary"
               >
                 Cancel
               </button>
@@ -195,9 +195,9 @@ export default function FamilyMembers() {
       )}
 
       {loading && familyMembers.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">Loading family members...</div>
+        <div className="text-center py-8 text-secondary">Loading family members...</div>
       ) : familyMembers.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-secondary">
           <div className="text-6xl mb-4">👨‍👩‍👧‍👦</div>
           <p className="text-lg">No family members yet</p>
           <p className="text-sm">Add family members to share your memories with them!</p>
@@ -205,12 +205,12 @@ export default function FamilyMembers() {
       ) : (
         <div className="grid gap-4">
           {familyMembers.map((member) => (
-            <div key={member.id} className="bg-white p-6 rounded-lg shadow border">
+            <div key={member.id} className="card">
               <div className="flex justify-between items-start">
                 <div className="flex-1">
-                  <h3 className="text-lg font-semibold text-gray-900">{member.name}</h3>
-                  <p className="text-gray-600">{member.email}</p>
-                  <p className="text-sm text-gray-500 bg-gray-100 px-2 py-1 rounded inline-block mt-2">
+                  <h3 className="text-lg font-semibold text-main">{member.name}</h3>
+                  <p className="text-secondary">{member.email}</p>
+                  <p className="text-sm text-secondary bg-gray-100 px-2 py-1 rounded inline-block mt-2">
                     {member.relationship}
                   </p>
                   <p className="text-xs text-gray-400 mt-2">

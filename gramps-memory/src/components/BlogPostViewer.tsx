@@ -98,7 +98,7 @@ export default function BlogPostViewer() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-8">
-        <div className="text-gray-500">Loading blog posts...</div>
+        <div className="text-secondary">Loading blog posts...</div>
       </div>
     );
   }
@@ -135,9 +135,9 @@ export default function BlogPostViewer() {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow border p-6">
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">{selectedPost.title}</h1>
-          <div className="text-sm text-gray-500 mb-6">
+        <div className="card p-6">
+          <h1 className="text-3xl font-bold text-main mb-4">{selectedPost.title}</h1>
+          <div className="text-sm text-secondary mb-6">
             Created: {new Date(selectedPost.created_at).toLocaleDateString()}
             {selectedPost.updated_at !== selectedPost.created_at && (
               <span> • Updated: {new Date(selectedPost.updated_at).toLocaleDateString()}</span>
@@ -157,14 +157,14 @@ export default function BlogPostViewer() {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-gray-900">Your Blog Posts</h2>
-        <div className="text-sm text-gray-500">
+        <h2 className="text-2xl font-bold text-main">Your Blog Posts</h2>
+        <div className="text-sm text-secondary">
           {blogPosts.length} {blogPosts.length === 1 ? 'post' : 'posts'}
         </div>
       </div>
 
       {blogPosts.length === 0 ? (
-        <div className="text-center py-8 text-gray-500">
+        <div className="text-center py-8 text-secondary">
           <div className="text-6xl mb-4">📝</div>
           <p className="text-lg">No blog posts yet</p>
           <p className="text-sm">Create memories through conversations to generate blog posts!</p>
@@ -175,7 +175,7 @@ export default function BlogPostViewer() {
             <div key={post.id} className="bg-white p-6 rounded-lg shadow border hover:shadow-lg transition-shadow">
               <div className="flex justify-between items-start mb-2">
                 <h3 
-                  className="text-lg font-semibold text-gray-900 cursor-pointer hover:text-indigo-600"
+                  className="text-lg font-semibold text-main cursor-pointer hover:text-indigo-600"
                   onClick={() => setSelectedPost(post)}
                 >
                   {post.title}

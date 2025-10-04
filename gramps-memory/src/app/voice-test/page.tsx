@@ -83,7 +83,7 @@ export default function VoiceTest() {
   return (
     <div className="min-h-screen bg-gray-100 py-8">
       <div className="max-w-4xl mx-auto px-4">
-        <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+        <h1 className="text-3xl font-bold text-main mb-8 text-center">
           Voice Recording Test
         </h1>
 
@@ -96,7 +96,7 @@ export default function VoiceTest() {
               className={`px-6 py-3 rounded-full text-white font-medium transition-all ${
                 isRecording
                   ? 'bg-red-600 hover:bg-red-700 animate-pulse'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
+                  : 'btn-primary'
               }`}
             >
               {isRecording ? '🛑 Stop Recording' : '🎤 Start Recording'}
@@ -131,7 +131,7 @@ export default function VoiceTest() {
           <h2 className="text-xl font-semibold mb-4">Debug Logs</h2>
           <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm max-h-96 overflow-y-auto">
             {logs.length === 0 ? (
-              <p className="text-gray-500">No logs yet. Click &quot;Start Recording&quot; to begin testing.</p>
+              <p className="text-secondary">No logs yet. Click &quot;Start Recording&quot; to begin testing.</p>
             ) : (
               logs.map((log, index) => (
                 <div key={index} className="mb-1">
