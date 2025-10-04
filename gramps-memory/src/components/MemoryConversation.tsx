@@ -837,7 +837,7 @@ export default function MemoryConversation() {
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h4 className="font-semibold text-blue-900 mb-2">Conversation Tips:</h4>
         <ul className="text-sm text-blue-800 space-y-1">
-          <li>• Take your time and share as much detail as you'd like</li>
+          <li>• Take your time and share as much detail as you&apos;d like</li>
           <li>• Don&apos;t worry about perfect grammar or structure</li>
           <li>• Feel free to go off-topic if a memory leads you somewhere else</li>
           <li>• Your memories will be automatically saved as you share them</li>

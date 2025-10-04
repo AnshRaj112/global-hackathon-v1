@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { FamilyMember } from '../utils/email';
@@ -16,13 +16,7 @@ export default function FamilyMembers() {
   });
   const { user } = useAuth();
 
-  useEffect(() => {
-    if (user) {
-      fetchFamilyMembers();
-    }
-  }, [user]);
-
-  const fetchFamilyMembers = async () => {
+  const fetchFamilyMembers = useCallback(async () => {
     if (!supabase || !user) return;
 
     setLoading(true);
@@ -44,7 +38,13 @@ export default function FamilyMembers() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    if (user) {
+      fetchFamilyMembers();
+    }
+  }, [user, fetchFamilyMembers]);
 
   const addFamilyMember = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -106,10 +106,6 @@ export default function FamilyMembers() {
     }
   };
 
-  const getDisplayName = () => {
-    if (!user) return '';
-    return user.user_metadata?.full_name || user.email || 'User';
-  };
 
   return (
     <div className="space-y-6">
@@ -238,7 +234,7 @@ export default function FamilyMembers() {
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Family members will receive beautifully formatted emails when you create blog posts</li>
           <li>• They can read your memories and stories in a professional format</li>
-          <li>• You can add as many family members as you'd like</li>
+          <li>• You can add as many family members as you&apos;d like</li>
           <li>• You can remove family members at any time</li>
         </ul>
       </div>
