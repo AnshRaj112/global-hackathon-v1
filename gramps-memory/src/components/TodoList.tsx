@@ -30,6 +30,11 @@ export default function TodoList() {
   }, [user]);
 
   const fetchTodos = async () => {
+    if (!supabase) {
+      console.error('Supabase not configured');
+      return;
+    }
+
     try {
       const { data, error } = await supabase
         .from('todos')
@@ -49,7 +54,7 @@ export default function TodoList() {
 
   const addTodo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newTodo.title.trim() || !user) return;
+    if (!newTodo.title.trim() || !user || !supabase) return;
 
     setLoading(true);
     try {
@@ -77,6 +82,8 @@ export default function TodoList() {
   };
 
   const toggleTodo = async (id: string, completed: boolean) => {
+    if (!supabase) return;
+
     try {
       const { error } = await supabase
         .from('todos')
@@ -97,6 +104,8 @@ export default function TodoList() {
   };
 
   const deleteTodo = async (id: string) => {
+    if (!supabase) return;
+
     try {
       const { error } = await supabase
         .from('todos')
