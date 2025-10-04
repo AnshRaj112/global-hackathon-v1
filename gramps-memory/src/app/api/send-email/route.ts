@@ -28,9 +28,9 @@ export async function POST(request: NextRequest) {
   try {
     const { blogPost, familyMembers, senderName }: SendEmailRequest = await request.json();
 
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    if (!process.env.FROM_EMAIL || !process.env.GOOGLE_APP_PASSWORD) {
       return NextResponse.json(
-        { error: 'Email configuration not found' },
+        { error: 'Email configuration not found. Please set FROM_EMAIL and GOOGLE_APP_PASSWORD environment variables.' },
         { status: 500 }
       );
     }
@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
+        user: process.env.FROM_EMAIL,
+        pass: process.env.GOOGLE_APP_PASSWORD,
       },
     });
 
@@ -52,7 +52,7 @@ export async function POST(request: NextRequest) {
         const emailHtml = generateEmailTemplate(blogPost, member, senderName);
         
         await transporter.sendMail({
-          from: process.env.EMAIL_USER,
+          from: process.env.FROM_EMAIL,
           to: member.email,
           subject: `New Family Memory: ${blogPost.title}`,
           html: emailHtml,
@@ -152,9 +152,6 @@ function generateEmailTemplate(
             <p class="subtitle">A ${blogPost.topic} memory from ${senderName}</p>
         </div>
         
-        <div class="greeting">
-            Dear ${familyMember.name},
-        </div>
         
         <div class="content">
             ${blogPost.content.replace(/\n/g, '<br>')}

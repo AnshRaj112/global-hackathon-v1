@@ -27,12 +27,14 @@ A Next.js application that helps elderly users preserve and share their precious
   - Beautiful formatting with markdown
   - AI-enhanced storytelling
   - Professional presentation
+  - One-click conversation to blog conversion
 
 - 👨‍👩‍👧‍👦 **Family Sharing**
   - Add family members with contact information
   - Automatic email distribution of blog posts
   - Relationship categorization
   - Privacy controls
+  - Gmail integration with app-specific passwords
 
 - 🎨 **Modern UI**
   - Responsive design with Tailwind CSS
@@ -78,11 +80,14 @@ GROQ_API_KEY=your_groq_api_key_here
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # Email Configuration (for sending blog posts to family)
-SMTP_HOST=your_smtp_host_here
-SMTP_PORT=587
-SMTP_USER=your_smtp_username_here
-SMTP_PASS=your_smtp_password_here
-SMTP_FROM=your_from_email_here
+# Gmail App Password Setup:
+# 1. Enable 2-factor authentication on your Gmail account
+# 2. Go to Google Account settings > Security
+# 3. Under "2-Step Verification", click "App passwords"
+# 4. Generate a new app password for "Mail"
+# 5. Use this 16-character password as GOOGLE_APP_PASSWORD
+FROM_EMAIL=your-email@gmail.com
+GOOGLE_APP_PASSWORD=your-16-character-app-password
 ```
 
 #### Getting API Keys
@@ -126,13 +131,27 @@ This will create your `.env.local` file with the correct structure and guide you
 7. In Supabase dashboard, go to **Authentication** > **Providers** > **Google**
 8. Enable Google provider and add your Client ID and Client Secret
 
-### 7. Run the Application
+### 6. Run the Application
 
 ```bash
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### 7. Test Email Configuration (Optional)
+
+To verify your email setup is working correctly:
+
+```bash
+# Install nodemailer if not already installed
+npm install nodemailer
+
+# Run the email test script
+node test-email-config.js
+```
+
+This will test your Gmail app password configuration and verify that emails can be sent successfully.
 
 ## Project Structure
 

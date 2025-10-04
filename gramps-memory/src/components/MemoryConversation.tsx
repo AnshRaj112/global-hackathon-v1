@@ -470,6 +470,109 @@ export default function MemoryConversation() {
     }
   };
 
+  const generateBlogPostFromConversation = async () => {
+    if (!supabase || !user || !currentConversation || messages.length < 2) return;
+
+    setIsLoading(true);
+    try {
+      // First, ensure conversation is saved to database
+      if (currentConversation.id.startsWith('temp-')) {
+        if (!supabase) {
+          throw new Error('Database connection not available. Please try again.');
+        }
+
+        console.log('Saving temporary conversation to database...');
+
+        const { data: savedConversation, error: conversationError } = await supabase
+          .from('conversations')
+          .insert([
+            {
+              topic: currentConversation.topic,
+              user_id: user.id,
+            },
+          ])
+          .select()
+          .single();
+
+        if (conversationError || !savedConversation) {
+          throw new Error(`Failed to save conversation to database: ${conversationError?.message || 'No conversation returned'}`);
+        }
+
+        // Save all messages to the database
+        const messageInserts = messages.map((message) => ({
+          conversation_id: savedConversation.id,
+          role: message.role,
+          content: message.content,
+          created_at: message.timestamp,
+        }));
+
+        const { error: messagesError } = await supabase
+          .from('messages')
+          .insert(messageInserts);
+
+        if (messagesError) {
+          console.error('Error saving messages:', messagesError);
+        }
+
+        // Update the current conversation with the real ID
+        setCurrentConversation(savedConversation);
+      }
+
+      // Format the actual conversation as a blog post
+      const blogPostContent = formatConversationAsBlog(messages, currentConversation.topic);
+
+      // Create blog post in database
+      const { data: blogPost, error: blogError } = await supabase
+        .from('blog_posts')
+        .insert([
+          {
+            title: `${currentConversation.topic} - ${new Date().toLocaleDateString()}`,
+            content: blogPostContent,
+            user_id: user.id,
+            published: true,
+          },
+        ])
+        .select()
+        .single();
+
+      if (blogError) {
+        console.error('Error creating blog post:', blogError);
+        alert('Error creating blog post. Please try again.');
+        return;
+      }
+
+      // Send email to family members if any exist
+      if (familyMembers.length > 0) {
+        const emailResult = await EmailService.sendBlogToFamily(
+          {
+            title: `${currentConversation.topic} - ${new Date().toLocaleDateString()}`,
+            content: blogPostContent,
+            authorName: user.user_metadata?.full_name || 'Family Member',
+            topic: currentConversation.topic,
+            created_at: new Date().toISOString()
+          },
+          familyMembers,
+          user.user_metadata?.full_name || 'Family Member'
+        );
+
+        if (emailResult.success) {
+          alert(`Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`);
+        } else {
+          alert('Blog post created, but failed to send emails to family members.');
+        }
+      } else {
+        alert('Blog post created successfully! Add family members to automatically share future posts.');
+      }
+
+      return blogPost;
+    } catch (error) {
+      console.error('Error creating blog post from conversation:', error);
+      alert(`Failed to create blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const generateBlogPost = async (memory: Memory) => {
     if (!supabase || !user) return;
 
@@ -533,6 +636,43 @@ export default function MemoryConversation() {
       console.error('Error creating blog post:', error);
       alert('Error creating blog post. Please try again.');
     }
+  };
+
+
+  const formatConversationAsBlog = (messages: Message[], topic: string): string => {
+    let blogContent = 'Dear Family,\n\n';
+    
+    // Extract only the family member's responses
+    const familyMemberMessages = messages.filter(msg => msg.role === 'user');
+    
+    if (familyMemberMessages.length === 0) {
+      return 'Dear Family,\n\nNo memories were shared in this conversation.';
+    }
+    
+    // Create a narrative from the family member's responses
+    let story = '';
+    for (let i = 0; i < familyMemberMessages.length; i++) {
+      const message = familyMemberMessages[i];
+      const content = message.content.trim();
+      
+      if (content) {
+        // If it's the first response, start with a topic-related sentence
+        if (i === 0) {
+          if (topic.toLowerCase().includes('childhood')) {
+            story += `My childhood home was ${content.toLowerCase()}!\n\n`;
+          } else if (topic.toLowerCase().includes('family')) {
+            story += `My family was ${content.toLowerCase()}!\n\n`;
+          } else {
+            story += `${content}\n\n`;
+          }
+        } else {
+          story += `${content}\n\n`;
+        }
+      }
+    }
+    
+    blogContent += story.trim();
+    return blogContent;
   };
 
   const getDisplayName = () => {
@@ -749,6 +889,14 @@ export default function MemoryConversation() {
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
           >
             Back to Topics
+          </button>
+          <button
+            onClick={generateBlogPostFromConversation}
+            disabled={isLoading || !currentConversation || messages.length < 2}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            title="This will create a blog post from your actual conversation"
+          >
+            {isLoading ? 'Creating...' : '📝 Create Blog Post'}
           </button>
           <button
             onClick={() => setShowMemories(true)}

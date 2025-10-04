@@ -566,20 +566,42 @@ export default function VoiceConversation() {
       utterance.volume = 0.9; // Higher volume for clarity
       utterance.lang = 'en-US';
       
-      // Try to select a more natural-sounding voice
-      const voices = window.speechSynthesis.getVoices();
-      const preferredVoices = voices.filter(voice => 
-        voice.lang.startsWith('en') && 
-        (voice.name.includes('Google') || 
-         voice.name.includes('Microsoft') || 
-         voice.name.includes('Natural') ||
-         voice.name.includes('Enhanced'))
-      );
+      // Wait for voices to load if they're not available yet
+      const selectVoice = () => {
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length === 0) {
+          // Voices not loaded yet, wait a bit and try again
+          setTimeout(selectVoice, 100);
+          return;
+        }
+        
+        const preferredVoices = voices.filter(voice => 
+          voice.lang.startsWith('en') && 
+          (voice.name.includes('Google') || 
+           voice.name.includes('Microsoft') || 
+           voice.name.includes('Natural') ||
+           voice.name.includes('Enhanced'))
+        );
+        
+        if (preferredVoices.length > 0) {
+          utterance.voice = preferredVoices[0];
+          console.log('Using voice:', preferredVoices[0].name);
+        } else {
+          console.log('Using default voice');
+        }
+        
+        // Start speaking after voice is selected
+        try {
+          window.speechSynthesis.speak(utterance);
+        } catch (error) {
+          console.error('Error starting speech synthesis:', error);
+          setIsSpeaking(false);
+          synthesisRef.current = null;
+        }
+      };
       
-      if (preferredVoices.length > 0) {
-        utterance.voice = preferredVoices[0];
-        console.log('Using voice:', preferredVoices[0].name);
-      }
+      // Select voice and start speaking
+      selectVoice();
       
       utterance.onstart = () => {
         console.log('Speech started');
@@ -593,36 +615,32 @@ export default function VoiceConversation() {
       };
       
       utterance.onerror = (event) => {
-        console.error('Speech error:', event.error);
-        setIsSpeaking(false);
-        synthesisRef.current = null;
-        
-        // Handle specific error types
+        // Handle specific error types without logging as errors for normal cases
         switch (event.error) {
           case 'interrupted':
-            // Don't log as error - this is usually intentional
-            console.log('Speech was interrupted (likely intentional)');
+            // This is normal when speech is intentionally stopped
+            console.log('Speech was interrupted');
+            setIsSpeaking(false);
+            synthesisRef.current = null;
             break;
           case 'canceled':
             console.log('Speech was canceled');
+            setIsSpeaking(false);
+            synthesisRef.current = null;
             break;
           case 'not-allowed':
             console.warn('Speech synthesis not allowed - check browser permissions');
+            setIsSpeaking(false);
+            synthesisRef.current = null;
             break;
           default:
-            console.warn('Speech synthesis error:', event.error);
+            console.error('Speech synthesis error:', event.error);
+            setIsSpeaking(false);
+            synthesisRef.current = null;
         }
       };
       
       synthesisRef.current = utterance;
-      
-      try {
-        window.speechSynthesis.speak(utterance);
-      } catch (error) {
-        console.error('Error starting speech synthesis:', error);
-        setIsSpeaking(false);
-        synthesisRef.current = null;
-      }
     } else {
       console.warn('Speech synthesis not supported in this browser');
     }
@@ -637,30 +655,11 @@ export default function VoiceConversation() {
   };
 
   const generateBlogPost = async () => {
-    if (!supabase || !user || !conversationText.trim()) return;
+    if (!supabase || !user || !messages.length) return;
 
     try {
-      // Use Groq for blog post generation (same as text conversations)
-      const response = await fetch('/api/groq-chat', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          memory: conversationText,
-          topic: currentTopic?.title || 'memory',
-          userContext: user?.user_metadata?.full_name ? 
-            `This memory belongs to ${user.user_metadata.full_name}` : 
-            undefined
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const blogPostContent = data.response;
+      // Format the actual conversation as a blog post
+      const blogPostContent = formatConversationAsBlog(messages, currentTopic?.title || 'Voice Memory');
 
       const { data: blogData, error } = await supabase
         .from('blog_posts')
@@ -711,6 +710,41 @@ export default function VoiceConversation() {
     }
   };
 
+  const formatConversationAsBlog = (messages: VoiceMessage[], topic: string): string => {
+    let blogContent = 'Dear Family,\n\n';
+    
+    // Extract only the family member's responses
+    const familyMemberMessages = messages.filter(msg => msg.role === 'user');
+    
+    if (familyMemberMessages.length === 0) {
+      return 'Dear Family,\n\nNo memories were shared in this conversation.';
+    }
+    
+    // Create a narrative from the family member's responses
+    let story = '';
+    for (let i = 0; i < familyMemberMessages.length; i++) {
+      const message = familyMemberMessages[i];
+      const content = message.content.trim();
+      
+      if (content) {
+        // If it's the first response, start with a topic-related sentence
+        if (i === 0) {
+          if (topic.toLowerCase().includes('childhood')) {
+            story += `My childhood home was ${content.toLowerCase()}!\n\n`;
+          } else if (topic.toLowerCase().includes('family')) {
+            story += `My family was ${content.toLowerCase()}!\n\n`;
+          } else {
+            story += `${content}\n\n`;
+          }
+        } else {
+          story += `${content}\n\n`;
+        }
+      }
+    }
+    
+    blogContent += story.trim();
+    return blogContent;
+  };
 
   if (showFamilyMembers) {
     return (
@@ -901,6 +935,7 @@ export default function VoiceConversation() {
               <button
                 onClick={generateBlogPost}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                title="This will create a blog post from your actual voice conversation"
               >
                 📝 Create Blog Post
               </button>
