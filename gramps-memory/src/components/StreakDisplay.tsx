@@ -36,11 +36,13 @@ export default function StreakDisplay() {
 
     try {
       // Fetch or create user streak
-      let { data: streakData, error: streakError } = await supabase
+      const { data: initialStreakData, error: streakError } = await supabase
         .from('user_streaks')
         .select('*')
         .eq('user_id', user.id)
         .single();
+      
+      let streakData = initialStreakData;
 
       if (streakError && streakError.code === 'PGRST116') {
         // Create streak if it doesn't exist
