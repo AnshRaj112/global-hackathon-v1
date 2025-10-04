@@ -2,7 +2,7 @@
 
 import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
-import TodoList from '../components/TodoList';
+import MemoryConversation from '../components/MemoryConversation';
 
 export default function Home() {
   const { user, signOut, loading } = useAuth();
@@ -77,10 +77,10 @@ export default function Home() {
         </div>
       </nav>
 
-      <main className="max-w-4xl mx-auto py-6 sm:px-6 lg:px-8">
+      <main className="max-w-6xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="content-card p-6">
-            <TodoList />
+            <MemoryConversation />
           </div>
         </div>
       </main>
