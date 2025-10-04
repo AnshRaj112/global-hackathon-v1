@@ -23,11 +23,13 @@ export class StreakService {
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
       // Get or create user streak
-      let { data: streak, error: streakError } = await supabase
+      const { data: initialStreak, error: streakError } = await supabase
         .from('user_streaks')
         .select('*')
         .eq('user_id', userId)
         .single();
+      
+      let streak = initialStreak;
 
       if (streakError && streakError.code === 'PGRST116') {
         // Create streak if it doesn't exist
@@ -84,7 +86,7 @@ export class StreakService {
       // Calculate new streak
       let newCurrentStreak = 1;
       let newLongestStreak = streak.longest_streak;
-      let newTotalMemories = streak.total_memories + 1;
+      const newTotalMemories = streak.total_memories + 1;
 
       // If there was activity yesterday, continue the streak
       if (streak.last_activity_date === yesterday) {

@@ -147,8 +147,7 @@ export default function FamilyMembers() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-bold text-main">Family Members</h2>
+      <div className="flex justify-end items-center">
         <button
           onClick={() => setShowAddForm(!showAddForm)}
           className="px-4 py-2 btn-primary"
