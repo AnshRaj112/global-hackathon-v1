@@ -53,7 +53,7 @@ export default function LoginPage() {
             Welcome back! Please sign in to continue.
             <br />
             <Link href="/signup" className="auth-link">
-              Don't have an account? Create one here
+              Don&apos;t have an account? Create one here
             </Link>
           </p>
         </div>

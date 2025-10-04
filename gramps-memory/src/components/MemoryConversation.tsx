@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import BlogPostViewer from './BlogPostViewer';
@@ -110,7 +110,7 @@ const CONVERSATION_TOPICS: ConversationTopic[] = [
   {
     id: 'wisdom',
     title: 'Life Lessons & Wisdom',
-    description: 'Share the wisdom you\'ve gained',
+    description: 'Share the wisdom you&apos;ve gained',
     category: 'wisdom',
     prompts: [
       "What's the most important lesson life has taught you?",
@@ -141,18 +141,7 @@ export default function MemoryConversation() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  useEffect(() => {
-    if (user) {
-      fetchMemories();
-      fetchFamilyMembers();
-    }
-  }, [user]);
-
-  const fetchMemories = async () => {
+  const fetchMemories = useCallback(async () => {
     if (!supabase) {
       console.log('Supabase not configured, skipping memory fetch');
       return;
@@ -193,9 +182,9 @@ export default function MemoryConversation() {
     } catch (error) {
       console.error('Error fetching memories:', error);
     }
-  };
+  }, [user]);
 
-  const fetchFamilyMembers = async () => {
+  const fetchFamilyMembers = useCallback(async () => {
     if (!supabase || !user) return;
 
     try {
@@ -214,7 +203,18 @@ export default function MemoryConversation() {
     } catch (error) {
       console.error('Error fetching family members:', error);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    if (user) {
+      fetchMemories();
+      fetchFamilyMembers();
+    }
+  }, [user, fetchMemories, fetchFamilyMembers]);
 
   const startConversation = async (topic: ConversationTopic) => {
     if (!user) {
@@ -680,7 +680,7 @@ export default function MemoryConversation() {
                 </h3>
                 <div className="mt-2 text-sm text-yellow-700">
                   <p>{databaseError}</p>
-                  <p className="mt-1">You can still use the conversation feature, but memories won't be saved until the database is set up.</p>
+                  <p className="mt-1">You can still use the conversation feature, but memories won&apos;t be saved until the database is set up.</p>
                 </div>
               </div>
             </div>
@@ -692,7 +692,7 @@ export default function MemoryConversation() {
             Welcome, {getDisplayName()}!
           </h2>
           <p className="text-lg text-gray-600 mb-8">
-            Let's preserve your precious memories together. Choose a topic to start our conversation.
+            Let&apos;s preserve your precious memories together. Choose a topic to start our conversation.
           </p>
         </div>
 
@@ -824,7 +824,7 @@ export default function MemoryConversation() {
               type="submit"
               disabled={isLoading || !userInput.trim()}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              onClick={(e) => {
+              onClick={() => {
                 console.log('Send button clicked:', { userInput, isLoading, currentConversation: !!currentConversation });
               }}
             >
@@ -838,7 +838,7 @@ export default function MemoryConversation() {
         <h4 className="font-semibold text-blue-900 mb-2">Conversation Tips:</h4>
         <ul className="text-sm text-blue-800 space-y-1">
           <li>• Take your time and share as much detail as you'd like</li>
-          <li>• Don't worry about perfect grammar or structure</li>
+          <li>• Don&apos;t worry about perfect grammar or structure</li>
           <li>• Feel free to go off-topic if a memory leads you somewhere else</li>
           <li>• Your memories will be automatically saved as you share them</li>
         </ul>

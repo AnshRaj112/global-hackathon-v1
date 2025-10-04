@@ -32,7 +32,7 @@ export default function Home() {
               Preserve and share your precious memories with your family
             </p>
             <p className="auth-subtitle mt-4 text-center">
-              Create, organize, and cherish your life's most important moments. 
+              Create, organize, and cherish your life&apos;s most important moments. 
               Share stories and memories with your loved ones in a beautiful, 
               easy-to-use platform designed for seniors.
             </p>
