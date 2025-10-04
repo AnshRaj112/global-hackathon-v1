@@ -35,7 +35,7 @@ export default function SignupPage() {
     const { error } = await signUp(email, password, fullName);
     
     if (error) {
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'An error occurred during sign up');
     } else {
       setMessage('Check your email for the confirmation link!');
     }
@@ -50,7 +50,7 @@ export default function SignupPage() {
     const { error } = await signInWithGoogle();
     
     if (error) {
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'An error occurred during Google sign up');
     }
     
     setLoading(false);

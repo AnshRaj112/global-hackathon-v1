@@ -21,7 +21,7 @@ export default function LoginPage() {
     const { error } = await signIn(email, password);
     
     if (error) {
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'An error occurred during sign in');
     } else {
       router.push('/');
     }
@@ -36,7 +36,7 @@ export default function LoginPage() {
     const { error } = await signInWithGoogle();
     
     if (error) {
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'An error occurred during Google sign in');
     }
     
     setLoading(false);
