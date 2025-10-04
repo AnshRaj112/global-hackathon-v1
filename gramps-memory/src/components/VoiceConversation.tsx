@@ -188,6 +188,62 @@ export default function VoiceConversation() {
     };
   }, [recordingTimeout]);
 
+  const generateAIResponse = useCallback(async (userMessage: string): Promise<string> => {
+    try {
+      // Use Groq for generating AI responses (faster and more reliable)
+      const groqMessages = [
+        ...messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        })),
+        {
+          role: 'user' as const,
+          content: userMessage
+        }
+      ];
+
+      const userContext = user?.user_metadata?.full_name ? 
+        `You are talking to ${user.user_metadata.full_name}` : 
+        undefined;
+
+      const response = await fetch('/api/groq-chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messages: groqMessages,
+          topic: currentTopic?.title || 'general conversation',
+          userContext
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response;
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      const fallbackResponses = [
+        "That's wonderful! Tell me more about that.",
+        "I can see this memory means a lot to you. What was the most special part?",
+        "That sounds like it was very meaningful to you. How did it make you feel?",
+        "What a beautiful story! Can you share more details about what happened?",
+        "I love hearing about this! What other memories does this bring to mind?",
+        "That's such an important memory. How did it shape who you are today?",
+        "What a wonderful experience! Tell me more about the people involved.",
+        "That sounds like it was very special to you. What made it memorable?",
+        "I'm so glad you're sharing this with me. What was the best part of that time?",
+        "That's fascinating! What else do you remember about that period?"
+      ];
+      
+      return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    }
+  }, [messages, user, currentTopic]);
+
   const handleVoiceInput = useCallback(async (transcript: string) => {
     if (!transcript.trim() || !currentConversation) return;
 
@@ -252,18 +308,43 @@ export default function VoiceConversation() {
       }
 
       // Update conversation text for blog generation
-      const conversationContent = [...messages, userMessage, aiMessage]
-        .filter(m => m.role === 'user')
-        .map(m => m.content)
-        .join(' ');
-      setConversationText(conversationContent);
+      setConversationText(prev => {
+        const conversationContent = [...messages, userMessage, aiMessage]
+          .filter(m => m.role === 'user')
+          .map(m => m.content)
+          .join(' ');
+        return conversationContent;
+      });
 
     } catch (error) {
       console.error('Error generating response:', error);
     } finally {
       setIsProcessing(false);
     }
-  }, [currentConversation, messages, supabase, user]);
+  }, [currentConversation, supabase, generateAIResponse]);
+
+  const stopRecording = useCallback(() => {
+    console.log('Stopping voice recording...');
+    
+    if (recognitionRef.current && recognitionState === 'running') {
+      setRecognitionState('stopping');
+      try {
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error stopping speech recognition:', error);
+        setRecognitionState('idle');
+        setIsRecording(false);
+      }
+    }
+    
+    // Clear the timeout
+    if (recordingTimeout) {
+      clearTimeout(recordingTimeout);
+      setRecordingTimeout(null);
+    }
+    
+    setIsRecording(false);
+  }, [recognitionState, recordingTimeout]);
 
   // Initialize speech recognition
   useEffect(() => {
@@ -358,7 +439,7 @@ export default function VoiceConversation() {
         console.error('Speech recognition not supported in this browser');
       }
     }
-  }, [handleVoiceInput]);
+  }, [handleVoiceInput, stopRecording, recordingTimeout]);
 
   const startVoiceConversation = async (topic: ConversationTopic) => {
     if (!user) {
@@ -468,85 +549,8 @@ export default function VoiceConversation() {
     }
   };
 
-  const stopRecording = () => {
-    console.log('Stopping voice recording...');
-    
-    if (recognitionRef.current && recognitionState === 'running') {
-      setRecognitionState('stopping');
-      try {
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error stopping speech recognition:', error);
-        setRecognitionState('idle');
-        setIsRecording(false);
-      }
-    }
-    
-    // Clear the timeout
-    if (recordingTimeout) {
-      clearTimeout(recordingTimeout);
-      setRecordingTimeout(null);
-    }
-    
-    setIsRecording(false);
-  };
 
 
-  const generateAIResponse = async (userMessage: string): Promise<string> => {
-    try {
-      // Use Groq for generating AI responses (faster and more reliable)
-      const groqMessages = [
-        ...messages.map(msg => ({
-          role: msg.role as 'user' | 'assistant',
-          content: msg.content
-        })),
-        {
-          role: 'user' as const,
-          content: userMessage
-        }
-      ];
-
-      const userContext = user?.user_metadata?.full_name ? 
-        `You are talking to ${user.user_metadata.full_name}` : 
-        undefined;
-
-      const response = await fetch('/api/groq-chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          messages: groqMessages,
-          topic: currentTopic?.title || 'general conversation',
-          userContext
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.response;
-    } catch (error) {
-      console.error('Error generating AI response:', error);
-      
-      const fallbackResponses = [
-        "That's wonderful! Tell me more about that.",
-        "I can see this memory means a lot to you. What was the most special part?",
-        "That sounds like it was very meaningful to you. How did it make you feel?",
-        "What a beautiful story! Can you share more details about what happened?",
-        "I love hearing about this! What other memories does this bring to mind?",
-        "That's such an important memory. How did it shape who you are today?",
-        "What a wonderful experience! Tell me more about the people involved.",
-        "That sounds like it was very special to you. What made it memorable?",
-        "I'm so glad you're sharing this with me. What was the best part of that time?",
-        "That's fascinating! What else do you remember about that period?"
-      ];
-      
-      return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
-    }
-  };
 
   const speakText = (text: string) => {
     if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
@@ -910,7 +914,7 @@ export default function VoiceConversation() {
                 <span className="text-sm font-medium">Listening... Speak now or click Stop Recording</span>
               </div>
               <p className="text-xs text-gray-500 mt-1">Recording will automatically stop after 30 seconds of silence</p>
-              <p className="text-xs text-blue-600 mt-1">💡 Keep speaking - recording will extend as long as you're talking!</p>
+              <p className="text-xs text-blue-600 mt-1">💡 Keep speaking - recording will extend as long as you&apos;re talking!</p>
             </div>
           )}
         </div>
