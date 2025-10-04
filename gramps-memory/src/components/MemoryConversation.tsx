@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import BlogPostViewer from './BlogPostViewer';
+import FamilyMembers from './FamilyMembers';
+import { GroqService, GroqMessage } from '../utils/groq';
+import { EmailService, FamilyMember } from '../utils/email';
 
 interface Message {
   id: string;
@@ -128,6 +131,8 @@ export default function MemoryConversation() {
   const [memories, setMemories] = useState<Memory[]>([]);
   const [showMemories, setShowMemories] = useState(false);
   const [showBlogPosts, setShowBlogPosts] = useState(false);
+  const [showFamilyMembers, setShowFamilyMembers] = useState(false);
+  const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [databaseError, setDatabaseError] = useState<string | null>(null);
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -143,6 +148,7 @@ export default function MemoryConversation() {
   useEffect(() => {
     if (user) {
       fetchMemories();
+      fetchFamilyMembers();
     }
   }, [user]);
 
@@ -186,6 +192,27 @@ export default function MemoryConversation() {
       setMemories(data || []);
     } catch (error) {
       console.error('Error fetching memories:', error);
+    }
+  };
+
+  const fetchFamilyMembers = async () => {
+    if (!supabase || !user) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('family_members')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching family members:', error);
+        return;
+      }
+
+      setFamilyMembers(data || []);
+    } catch (error) {
+      console.error('Error fetching family members:', error);
     }
   };
 
@@ -279,31 +306,54 @@ export default function MemoryConversation() {
   };
 
   const generateAIResponse = async (userMessage: string): Promise<string> => {
-    // Simulate AI response generation
-    // In a real implementation, this would call an AI API
-    const responses = [
-      "That's wonderful! Tell me more about that.",
-      "I can see this memory means a lot to you. What happened next?",
-      "That sounds like a special moment. How did it make you feel?",
-      "What a beautiful story! Can you share more details?",
-      "That's fascinating! What else do you remember about that time?",
-      "I love hearing about this! What was the most memorable part?",
-      "That's such an important memory. How did it shape who you are today?",
-      "What a wonderful experience! Tell me more about the people involved.",
-      "That sounds like it was very meaningful to you. What made it special?",
-      "I'm so glad you're sharing this with me. What other memories does this bring up?"
-    ];
-    
-    // Add some context-aware responses based on current topic
-    if (currentTopic?.category === 'childhood') {
-      responses.push("What a lovely childhood memory! What was your favorite part of being a child?");
-    } else if (currentTopic?.category === 'family') {
-      responses.push("Family stories are so precious. What made your family special?");
-    } else if (currentTopic?.category === 'career') {
-      responses.push("That's a great work story! What did you learn from that experience?");
-    }
+    try {
+      // Convert messages to Groq format (including the current user message)
+      const groqMessages: GroqMessage[] = [
+        ...messages.map(msg => ({
+          role: msg.role as 'user' | 'assistant',
+          content: msg.content
+        })),
+        {
+          role: 'user' as const,
+          content: userMessage
+        }
+      ];
 
-    return responses[Math.floor(Math.random() * responses.length)];
+      console.log('Sending to Groq:', {
+        messages: groqMessages.length,
+        topic: currentTopic?.title,
+        userMessage: userMessage
+      });
+
+      const userContext = user?.user_metadata?.full_name ? 
+        `You are talking to ${user.user_metadata.full_name}` : 
+        undefined;
+
+      // Use Groq AI for real conversation
+      return await GroqService.generateResponse(
+        groqMessages,
+        currentTopic?.title || 'general conversation',
+        userContext
+      );
+    } catch (error) {
+      console.error('Error generating AI response:', error);
+      
+      // Fallback responses if Groq fails
+      const fallbackResponses = [
+        "That's wonderful! Tell me more about that.",
+        "I can see this memory means a lot to you. What happened next?",
+        "That sounds like a special moment. How did it make you feel?",
+        "What a beautiful story! Can you share more details?",
+        "That's fascinating! What else do you remember about that time?",
+        "I love hearing about this! What was the most memorable part?",
+        "That's such an important memory. How did it shape who you are today?",
+        "What a wonderful experience! Tell me more about the people involved.",
+        "That sounds like it was very meaningful to you. What made it special?",
+        "I'm so glad you're sharing this with me. What other memories does this bring up?"
+      ];
+      
+      return fallbackResponses[Math.floor(Math.random() * fallbackResponses.length)];
+    }
   };
 
   const saveMemory = async (content: string, category: string) => {
@@ -423,18 +473,18 @@ export default function MemoryConversation() {
   const generateBlogPost = async (memory: Memory) => {
     if (!supabase || !user) return;
 
-    // Generate blog post content
-    const blogPostContent = `# ${memory.title}
-
-*Originally shared on ${new Date(memory.created_at).toLocaleDateString()}*
-
-${memory.content}
-
----
-
-*This memory was captured through our interactive conversation system, designed to preserve family stories and wisdom for future generations.*`;
-
     try {
+      // Use Groq AI to generate a beautiful blog post
+      const userContext = user?.user_metadata?.full_name ? 
+        `This memory belongs to ${user.user_metadata.full_name}` : 
+        undefined;
+
+      const blogPostContent = await GroqService.generateBlogPost(
+        memory.content,
+        memory.category,
+        userContext
+      );
+
       const { data, error } = await supabase
         .from('blog_posts')
         .insert([
@@ -451,13 +501,37 @@ ${memory.content}
 
       if (error) {
         console.error('Error creating blog post:', error);
+        alert('Error creating blog post. Please try again.');
         return;
       }
 
-      alert('Blog post created successfully!');
+      // Send email to family members if any exist
+      if (familyMembers.length > 0) {
+        const emailResult = await EmailService.sendBlogToFamily(
+          {
+            title: memory.title,
+            content: blogPostContent,
+            authorName: user.user_metadata?.full_name || 'Family Member',
+            topic: memory.category,
+            created_at: new Date().toISOString()
+          },
+          familyMembers,
+          user.user_metadata?.full_name || 'Family Member'
+        );
+
+        if (emailResult.success) {
+          alert(`Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`);
+        } else {
+          alert('Blog post created, but failed to send emails to family members.');
+        }
+      } else {
+        alert('Blog post created successfully! Add family members to automatically share future posts.');
+      }
+
       return data;
     } catch (error) {
       console.error('Error creating blog post:', error);
+      alert('Error creating blog post. Please try again.');
     }
   };
 
@@ -465,6 +539,37 @@ ${memory.content}
     if (!user) return '';
     return user.user_metadata?.full_name || user.email || 'User';
   };
+
+  if (showFamilyMembers) {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-gray-900">Family Members</h2>
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setShowFamilyMembers(false)}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Back to Conversations
+            </button>
+            <button
+              onClick={() => { setShowFamilyMembers(false); setShowMemories(true); }}
+              className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+            >
+              View Memories
+            </button>
+            <button
+              onClick={() => { setShowFamilyMembers(false); setShowBlogPosts(true); }}
+              className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              View Blog Posts
+            </button>
+          </div>
+        </div>
+        <FamilyMembers />
+      </div>
+    );
+  }
 
   if (showBlogPosts) {
     return (
@@ -483,6 +588,12 @@ ${memory.content}
               className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
             >
               View Memories
+            </button>
+            <button
+              onClick={() => { setShowBlogPosts(false); setShowFamilyMembers(true); }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Family Members
             </button>
           </div>
         </div>
@@ -508,6 +619,12 @@ ${memory.content}
               className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
             >
               View Blog Posts
+            </button>
+            <button
+              onClick={() => { setShowMemories(false); setShowFamilyMembers(true); }}
+              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            >
+              Family Members
             </button>
           </div>
         </div>
@@ -608,6 +725,12 @@ ${memory.content}
           >
             View Blog Posts
           </button>
+          <button
+            onClick={() => setShowFamilyMembers(true)}
+            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Family Members ({familyMembers.length})
+          </button>
         </div>
       </div>
     );
@@ -638,6 +761,12 @@ ${memory.content}
             className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
           >
             Blog Posts
+          </button>
+          <button
+            onClick={() => setShowFamilyMembers(true)}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+          >
+            Family ({familyMembers.length})
           </button>
         </div>
       </div>

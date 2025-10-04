@@ -42,11 +42,36 @@ CREATE TABLE IF NOT EXISTS messages (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
+-- Create family_members table
+CREATE TABLE IF NOT EXISTS family_members (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  email TEXT NOT NULL,
+  relationship TEXT NOT NULL,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create email_logs table
+CREATE TABLE IF NOT EXISTS email_logs (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  blog_post_id UUID REFERENCES blog_posts(id) ON DELETE CASCADE,
+  family_member_id UUID REFERENCES family_members(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  email_status TEXT NOT NULL CHECK (email_status IN ('sent', 'failed', 'pending')),
+  sent_at TIMESTAMP WITH TIME ZONE,
+  error_message TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
 -- Enable Row Level Security (RLS)
 ALTER TABLE memories ENABLE ROW LEVEL SECURITY;
 ALTER TABLE blog_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE conversations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE family_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE email_logs ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for memories
 CREATE POLICY "Users can view their own memories" ON memories
@@ -124,6 +149,32 @@ CREATE POLICY "Users can delete messages from their conversations" ON messages
     )
   );
 
+-- Create RLS policies for family_members
+CREATE POLICY "Users can view their own family members" ON family_members
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own family members" ON family_members
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own family members" ON family_members
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own family members" ON family_members
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for email_logs
+CREATE POLICY "Users can view their own email logs" ON email_logs
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own email logs" ON email_logs
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own email logs" ON email_logs
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own email logs" ON email_logs
+  FOR DELETE USING (auth.uid() = user_id);
+
 -- Create indexes for better performance
 CREATE INDEX IF NOT EXISTS idx_memories_user_id ON memories(user_id);
 CREATE INDEX IF NOT EXISTS idx_memories_category ON memories(category);
@@ -135,3 +186,9 @@ CREATE INDEX IF NOT EXISTS idx_blog_posts_published ON blog_posts(published);
 
 CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
 CREATE INDEX IF NOT EXISTS idx_messages_conversation_id ON messages(conversation_id);
+
+CREATE INDEX IF NOT EXISTS idx_family_members_user_id ON family_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_family_members_email ON family_members(email);
+CREATE INDEX IF NOT EXISTS idx_email_logs_user_id ON email_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_email_logs_blog_post_id ON email_logs(blog_post_id);
+CREATE INDEX IF NOT EXISTS idx_email_logs_family_member_id ON email_logs(family_member_id);
