@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import Dialog from './Dialog';
 import { FamilyMember } from '../utils/email';
 
 export default function FamilyMembers() {
@@ -14,7 +15,35 @@ export default function FamilyMembers() {
     email: '',
     relationship: ''
   });
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    showCancel?: boolean;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
   const { user } = useAuth();
+
+  const showDialog = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', showCancel = false, onConfirm?: () => void) => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type,
+      showCancel,
+      onConfirm
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, isOpen: false }));
+  };
 
   const fetchFamilyMembers = useCallback(async () => {
     if (!supabase || !user) return;
@@ -67,7 +96,7 @@ export default function FamilyMembers() {
 
       if (error) {
         console.error('Error adding family member:', error);
-        alert('Error adding family member. Please try again.');
+        showDialog('Error', 'Error adding family member. Please try again.', 'error');
         return;
       }
 
@@ -76,7 +105,7 @@ export default function FamilyMembers() {
       setShowAddForm(false);
     } catch (error) {
       console.error('Error adding family member:', error);
-      alert('Error adding family member. Please try again.');
+      showDialog('Error', 'Error adding family member. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -85,25 +114,34 @@ export default function FamilyMembers() {
   const deleteFamilyMember = async (id: string) => {
     if (!supabase) return;
 
-    if (!confirm('Are you sure you want to remove this family member?')) return;
+    showDialog(
+      'Remove Family Member',
+      'Are you sure you want to remove this family member? This action cannot be undone.',
+      'warning',
+      true,
+      async () => {
+        try {
+          if (!supabase) return;
+          
+          const { error } = await supabase
+            .from('family_members')
+            .delete()
+            .eq('id', id);
 
-    try {
-      const { error } = await supabase
-        .from('family_members')
-        .delete()
-        .eq('id', id);
+          if (error) {
+            console.error('Error deleting family member:', error);
+            showDialog('Error', 'Error removing family member. Please try again.', 'error');
+            return;
+          }
 
-      if (error) {
-        console.error('Error deleting family member:', error);
-        alert('Error removing family member. Please try again.');
-        return;
+          setFamilyMembers(familyMembers.filter(member => member.id !== id));
+          showDialog('Success', 'Family member removed successfully!', 'success');
+        } catch (error) {
+          console.error('Error deleting family member:', error);
+          showDialog('Error', 'Error removing family member. Please try again.', 'error');
+        }
       }
-
-      setFamilyMembers(familyMembers.filter(member => member.id !== id));
-    } catch (error) {
-      console.error('Error deleting family member:', error);
-      alert('Error removing family member. Please try again.');
-    }
+    );
   };
 
 
@@ -238,6 +276,17 @@ export default function FamilyMembers() {
           <li>• You can remove family members at any time</li>
         </ul>
       </div>
+
+      {/* Dialog */}
+      <Dialog
+        isOpen={dialog.isOpen}
+        onClose={closeDialog}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        showCancel={dialog.showCancel}
+        onConfirm={dialog.onConfirm}
+      />
     </div>
   );
 }

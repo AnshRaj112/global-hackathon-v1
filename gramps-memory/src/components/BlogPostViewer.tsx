@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
+import Dialog from './Dialog';
 
 interface BlogPost {
   id: string;
@@ -19,7 +20,35 @@ export default function BlogPostViewer() {
   const [blogPosts, setBlogPosts] = useState<BlogPost[]>([]);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+    showCancel?: boolean;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
   const { user } = useAuth();
+
+  const showDialog = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info', showCancel = false, onConfirm?: () => void) => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type,
+      showCancel,
+      onConfirm
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, isOpen: false }));
+  };
 
   useEffect(() => {
     if (user) {
@@ -54,34 +83,46 @@ export default function BlogPostViewer() {
   const deleteBlogPost = async (id: string) => {
     if (!supabase) return;
 
-    if (!confirm('Are you sure you want to delete this blog post?')) return;
+    showDialog(
+      'Delete Blog Post',
+      'Are you sure you want to delete this blog post? This action cannot be undone.',
+      'warning',
+      true,
+      async () => {
+        try {
+          if (!supabase) return;
+          
+          const { error } = await supabase
+            .from('blog_posts')
+            .delete()
+            .eq('id', id);
 
-    try {
-      const { error } = await supabase
-        .from('blog_posts')
-        .delete()
-        .eq('id', id);
+          if (error) {
+            console.error('Error deleting blog post:', error);
+            showDialog('Error', 'Failed to delete blog post. Please try again.', 'error');
+            return;
+          }
 
-      if (error) {
-        console.error('Error deleting blog post:', error);
-        return;
+          setBlogPosts(blogPosts.filter(post => post.id !== id));
+          if (selectedPost?.id === id) {
+            setSelectedPost(null);
+          }
+          showDialog('Success', 'Blog post deleted successfully!', 'success');
+        } catch (error) {
+          console.error('Error deleting blog post:', error);
+          showDialog('Error', 'Failed to delete blog post. Please try again.', 'error');
+        }
       }
-
-      setBlogPosts(blogPosts.filter(post => post.id !== id));
-      if (selectedPost?.id === id) {
-        setSelectedPost(null);
-      }
-    } catch (error) {
-      console.error('Error deleting blog post:', error);
-    }
+    );
   };
 
   const copyToClipboard = async (content: string) => {
     try {
       await navigator.clipboard.writeText(content);
-      alert('Blog post copied to clipboard!');
+      showDialog('Success', 'Blog post copied to clipboard!', 'success');
     } catch (error) {
       console.error('Error copying to clipboard:', error);
+      showDialog('Error', 'Failed to copy to clipboard. Please try again.', 'error');
     }
   };
 
@@ -220,6 +261,17 @@ export default function BlogPostViewer() {
           ))}
         </div>
       )}
+
+      {/* Dialog */}
+      <Dialog
+        isOpen={dialog.isOpen}
+        onClose={closeDialog}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+        showCancel={dialog.showCancel}
+        onConfirm={dialog.onConfirm}
+      />
     </div>
   );
 }

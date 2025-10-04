@@ -5,6 +5,7 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { EmailService, FamilyMember } from '../utils/email';
 import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
+import Dialog from './Dialog';
 
 interface VoiceMessage {
   id: string;
@@ -38,6 +39,17 @@ export default function VoiceConversation() {
   const [conversationText, setConversationText] = useState('');
   const [recordingTimeout, setRecordingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [recognitionState, setRecognitionState] = useState<'idle' | 'starting' | 'running' | 'stopping'>('idle');
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
   
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -46,6 +58,19 @@ export default function VoiceConversation() {
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const showDialog = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, isOpen: false }));
   };
 
   const fetchFamilyMembers = useCallback(async () => {
@@ -321,26 +346,26 @@ export default function VoiceConversation() {
           // Show user-friendly error messages
           switch (event.error) {
             case 'no-speech':
-              alert('No speech detected. Please try speaking again.');
+              showDialog('No Speech Detected', 'No speech detected. Please try speaking again.', 'warning');
               break;
             case 'audio-capture':
-              alert('Microphone not accessible. Please check your microphone permissions.');
+              showDialog('Microphone Access', 'Microphone not accessible. Please check your microphone permissions.', 'error');
               break;
             case 'not-allowed':
-              alert('Microphone access denied. Please allow microphone access and try again.');
+              showDialog('Permission Denied', 'Microphone access denied. Please allow microphone access and try again.', 'error');
               break;
             case 'network':
-              alert('Network error occurred. Please check your internet connection.');
+              showDialog('Network Error', 'Network error occurred. Please check your internet connection.', 'error');
               break;
             case 'aborted':
-              // Don't show alert for aborted - this is usually intentional
+              // Don't show dialog for aborted - this is usually intentional
               console.log('Speech recognition was aborted (likely intentional)');
               break;
             case 'service-not-allowed':
-              alert('Speech recognition service not available. Please try again later.');
+              showDialog('Service Unavailable', 'Speech recognition service not available. Please try again later.', 'error');
               break;
             default:
-              alert(`Speech recognition error: ${event.error}. Please try again.`);
+              showDialog('Speech Recognition Error', `Speech recognition error: ${event.error}. Please try again.`, 'error');
           }
         };
 
@@ -425,7 +450,7 @@ export default function VoiceConversation() {
 
   const startRecording = () => {
     if (!recognitionRef.current) {
-      alert('Speech recognition is not supported in this browser. Please use Chrome, Safari, or Edge.');
+      showDialog('Browser Not Supported', 'Speech recognition is not supported in this browser. Please use Chrome, Safari, or Edge.', 'error');
       return;
     }
 
@@ -460,7 +485,7 @@ export default function VoiceConversation() {
         clearTimeout(recordingTimeout);
         setRecordingTimeout(null);
       }
-      alert('Error starting voice recording. Please try again.');
+      showDialog('Recording Error', 'Error starting voice recording. Please try again.', 'error');
     }
   };
 
@@ -591,7 +616,7 @@ export default function VoiceConversation() {
 
       if (error) {
         console.error('Error creating blog post:', error);
-        alert('Error creating blog post. Please try again.');
+        showDialog('Error', 'Error creating blog post. Please try again.', 'error');
         return;
       }
 
@@ -610,18 +635,18 @@ export default function VoiceConversation() {
         );
 
         if (emailResult.success) {
-          alert(`Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`);
+          showDialog('Success', `Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`, 'success');
         } else {
-          alert('Blog post created, but failed to send emails to family members.');
+          showDialog('Warning', 'Blog post created, but failed to send emails to family members.', 'warning');
         }
       } else {
-        alert('Blog post created successfully! Add family members to automatically share future posts.');
+        showDialog('Success', 'Blog post created successfully! Add family members to automatically share future posts.', 'success');
       }
 
       return blogData;
     } catch (error) {
       console.error('Error creating blog post:', error);
-      alert('Error creating blog post. Please try again.');
+      showDialog('Error', 'Error creating blog post. Please try again.', 'error');
     }
   };
 
@@ -776,9 +801,6 @@ export default function VoiceConversation() {
               className="px-4 py-2 btn-primary"
               title="This will create a blog post from your actual voice conversation"
             >
-              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
               Create Blog Post
             </button>
           )}
@@ -894,6 +916,15 @@ export default function VoiceConversation() {
           <li>• Create a blog post anytime to share with family members</li>
         </ul>
       </div>
+
+      {/* Dialog */}
+      <Dialog
+        isOpen={dialog.isOpen}
+        onClose={closeDialog}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+      />
     </div>
   );
 }

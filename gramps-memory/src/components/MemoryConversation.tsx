@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import Link from 'next/link';
 import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import BlogPostViewer from './BlogPostViewer';
 import FamilyMembers from './FamilyMembers';
-import StreakDisplay from './StreakDisplay';
+import Dialog from './Dialog';
 import { GroqService, GroqMessage } from '../utils/groq';
 import { EmailService, FamilyMember } from '../utils/email';
 import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
@@ -51,8 +52,18 @@ export default function MemoryConversation() {
   const [showFamilyMembers, setShowFamilyMembers] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [databaseError, setDatabaseError] = useState<string | null>(null);
-  const [showStreak, setShowStreak] = useState(false);
   const [streakNotification, setStreakNotification] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    type: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    isOpen: false,
+    title: '',
+    message: '',
+    type: 'info'
+  });
   const { user } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -480,7 +491,7 @@ export default function MemoryConversation() {
 
       if (blogError) {
         console.error('Error creating blog post:', blogError);
-        alert('Error creating blog post. Please try again.');
+        showDialog('Error', 'Error creating blog post. Please try again.', 'error');
         return;
       }
 
@@ -499,18 +510,18 @@ export default function MemoryConversation() {
         );
 
         if (emailResult.success) {
-          alert(`Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`);
+          showDialog('Success', `Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`, 'success');
         } else {
-          alert('Blog post created, but failed to send emails to family members.');
+          showDialog('Warning', 'Blog post created, but failed to send emails to family members.', 'warning');
         }
       } else {
-        alert('Blog post created successfully! Add family members to automatically share future posts.');
+        showDialog('Success', 'Blog post created successfully! Add family members to automatically share future posts.', 'success');
       }
 
       return blogPost;
     } catch (error) {
       console.error('Error creating blog post from conversation:', error);
-      alert(`Failed to create blog post: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showDialog('Error', `Failed to create blog post: ${error instanceof Error ? error.message : 'Unknown error'}`, 'error');
     } finally {
       setIsLoading(false);
     }
@@ -547,7 +558,7 @@ export default function MemoryConversation() {
 
       if (error) {
         console.error('Error creating blog post:', error);
-        alert('Error creating blog post. Please try again.');
+        showDialog('Error', 'Error creating blog post. Please try again.', 'error');
         return;
       }
 
@@ -566,18 +577,18 @@ export default function MemoryConversation() {
         );
 
         if (emailResult.success) {
-          alert(`Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`);
+          showDialog('Success', `Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`, 'success');
         } else {
-          alert('Blog post created, but failed to send emails to family members.');
+          showDialog('Warning', 'Blog post created, but failed to send emails to family members.', 'warning');
         }
       } else {
-        alert('Blog post created successfully! Add family members to automatically share future posts.');
+        showDialog('Success', 'Blog post created successfully! Add family members to automatically share future posts.', 'success');
       }
 
       return data;
     } catch (error) {
       console.error('Error creating blog post:', error);
-      alert('Error creating blog post. Please try again.');
+      showDialog('Error', 'Error creating blog post. Please try again.', 'error');
     }
   };
 
@@ -623,42 +634,19 @@ export default function MemoryConversation() {
     return user.user_metadata?.full_name || user.email || 'User';
   };
 
-  if (showStreak) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-main">My Progress</h2>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowStreak(false)}
-              className="px-4 py-2 btn-primary"
-            >
-              Back to Conversations
-            </button>
-            <button
-              onClick={() => { setShowStreak(false); setShowMemories(true); }}
-              className="px-4 py-2 btn-primary"
-            >
-              View Memories
-            </button>
-            <button
-              onClick={() => { setShowStreak(false); setShowBlogPosts(true); }}
-              className="px-4 py-2 btn-primary"
-            >
-              View Blog Posts
-            </button>
-            <button
-              onClick={() => { setShowStreak(false); setShowFamilyMembers(true); }}
-              className="px-4 py-2 btn-secondary"
-            >
-              Family Members
-            </button>
-          </div>
-        </div>
-        <StreakDisplay />
-      </div>
-    );
-  }
+  const showDialog = (title: string, message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    setDialog({
+      isOpen: true,
+      title,
+      message,
+      type
+    });
+  };
+
+  const closeDialog = () => {
+    setDialog(prev => ({ ...prev, isOpen: false }));
+  };
+
 
   if (showFamilyMembers) {
     return (
@@ -684,12 +672,12 @@ export default function MemoryConversation() {
             >
               View Blog Posts
             </button>
-            <button
-              onClick={() => { setShowFamilyMembers(false); setShowStreak(true); }}
+            <Link
+              href="/streak"
               className="px-4 py-2 btn-secondary"
             >
               My Progress
-            </button>
+            </Link>
           </div>
         </div>
         <FamilyMembers />
@@ -721,12 +709,12 @@ export default function MemoryConversation() {
             >
               Family Members
             </button>
-            <button
-              onClick={() => { setShowBlogPosts(false); setShowStreak(true); }}
+            <Link
+              href="/streak"
               className="px-4 py-2 btn-secondary"
             >
               My Progress
-            </button>
+            </Link>
           </div>
         </div>
         <BlogPostViewer />
@@ -758,12 +746,12 @@ export default function MemoryConversation() {
             >
               Family Members
             </button>
-            <button
-              onClick={() => { setShowMemories(false); setShowStreak(true); }}
+            <Link
+              href="/streak"
               className="px-4 py-2 btn-secondary"
             >
               My Progress
-            </button>
+            </Link>
           </div>
         </div>
 
@@ -833,10 +821,6 @@ export default function MemoryConversation() {
             Let&apos;s preserve your precious memories together. Choose a topic to start our conversation.
           </p>
           
-          {/* Quick Streak Display */}
-          <div className="mb-8">
-            <StreakDisplay />
-          </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -871,15 +855,12 @@ export default function MemoryConversation() {
           >
             View Blog Posts
           </button>
-          <button
-            onClick={() => setShowStreak(true)}
-            className="px-6 py-3 btn-primary"
+          <Link
+            href="/streak"
+            className="px-6 py-3 btn-primary inline-block"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
             My Progress
-          </button>
+          </Link>
         </div>
       </div>
     );
@@ -921,42 +902,26 @@ export default function MemoryConversation() {
             className="px-4 py-2 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
             title="This will create a blog post from your actual conversation"
           >
-            {isLoading ? 'Creating...' : (
-              <>
-                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                Create Blog Post
-              </>
-            )}
+            {isLoading ? 'Creating...' : 'Create Blog Post'}
           </button>
           <button
             onClick={() => setShowBlogPosts(true)}
             className="px-4 py-2 btn-primary"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
             View Blog Posts
           </button>
           <button
             onClick={() => setShowFamilyMembers(true)}
             className="px-4 py-2 btn-secondary"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
             Family ({familyMembers.length})
           </button>
-          <button
-            onClick={() => setShowStreak(true)}
+          <Link
+            href="/streak"
             className="px-4 py-2 btn-secondary"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
             My Progress
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -1034,6 +999,15 @@ export default function MemoryConversation() {
           <li>• Your memories will be automatically saved as you share them</li>
         </ul>
       </div>
+
+      {/* Dialog */}
+      <Dialog
+        isOpen={dialog.isOpen}
+        onClose={closeDialog}
+        title={dialog.title}
+        message={dialog.message}
+        type={dialog.type}
+      />
     </div>
   );
 }
