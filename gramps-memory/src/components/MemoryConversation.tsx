@@ -11,6 +11,7 @@ import { GroqService, GroqMessage } from '../utils/groq';
 import { EmailService, FamilyMember } from '../utils/email';
 import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
 import { StreakService } from '../utils/streak';
+import { XPService } from '../utils/xpService';
 
 interface Message {
   id: string;
@@ -46,13 +47,12 @@ export default function MemoryConversation() {
   const [currentConversation, setCurrentConversation] = useState<Conversation | null>(null);
   const [userInput, setUserInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [memories, setMemories] = useState<Memory[]>([]);
-  const [showMemories, setShowMemories] = useState(false);
   const [showBlogPosts, setShowBlogPosts] = useState(false);
   const [showFamilyMembers, setShowFamilyMembers] = useState(false);
   const [familyMembers, setFamilyMembers] = useState<FamilyMember[]>([]);
   const [databaseError, setDatabaseError] = useState<string | null>(null);
   const [streakNotification, setStreakNotification] = useState<string | null>(null);
+  const [xpNotification, setXPNotification] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -64,55 +64,13 @@ export default function MemoryConversation() {
     message: '',
     type: 'info'
   });
-  const { user } = useAuth();
+  const { user, refreshXP } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const fetchMemories = useCallback(async () => {
-    if (!supabase) {
-      console.log('Supabase not configured, skipping memory fetch');
-      return;
-    }
-    
-    if (!user) {
-      console.log('User not authenticated, skipping memory fetch');
-      return;
-    }
-
-    try {
-      console.log('Fetching memories for user:', user.id);
-      const { data, error } = await supabase
-        .from('memories')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        console.error('Error fetching memories:', error);
-        console.error('Error details:', {
-          message: error.message,
-          details: error.details,
-          hint: error.hint,
-          code: error.code
-        });
-        
-        // If table doesn't exist, show a helpful message
-        if (error.code === 'PGRST116' || error.message.includes('relation "memories" does not exist')) {
-          console.warn('Memories table does not exist. Please run the database schema in your Supabase SQL editor.');
-          setDatabaseError('Database tables not found. Please run the database schema in your Supabase SQL editor.');
-        }
-        return;
-      }
-
-      console.log('Successfully fetched memories:', data?.length || 0);
-      setMemories(data || []);
-    } catch (error) {
-      console.error('Error fetching memories:', error);
-    }
-  }, [user]);
 
   const fetchFamilyMembers = useCallback(async () => {
     if (!supabase || !user) return;
@@ -141,10 +99,9 @@ export default function MemoryConversation() {
 
   useEffect(() => {
     if (user) {
-      fetchMemories();
       fetchFamilyMembers();
     }
-  }, [user, fetchMemories, fetchFamilyMembers]);
+  }, [user, fetchFamilyMembers]);
 
   const startConversation = async (topic: ConversationTopic) => {
     if (!user) {
@@ -308,15 +265,14 @@ export default function MemoryConversation() {
       }
 
       if (data && data[0]) {
-        setMemories([data[0], ...memories]);
-        
         // Update streak after successful memory save
+        let updatedStreak = null;
         try {
-          const updatedStreak = await StreakService.updateStreak(user.id);
+          updatedStreak = await StreakService.updateStreak(user.id);
           if (updatedStreak) {
             // Show streak notification
             if (updatedStreak.current_streak === 1) {
-              setStreakNotification("🎉 First memory recorded! Your journey begins!");
+              setStreakNotification("🎉 First conversation started! Your journey begins!");
             } else if (updatedStreak.current_streak === 7) {
               setStreakNotification("🔥 Amazing! 7 days in a row! You're on fire!");
             } else if (updatedStreak.current_streak === 30) {
@@ -332,6 +288,48 @@ export default function MemoryConversation() {
           console.error('Error updating streak:', streakError);
           // Don't fail the memory save if streak update fails
         }
+
+        // Award XP for message sent
+        try {
+          const xpResult = await XPService.awardMessageXP(user.id, 'text');
+
+          if (xpResult.success && xpResult.xpAwarded > 0) {
+            // Show XP notification
+            if (xpResult.leveledUp && xpResult.newLevel) {
+              setXPNotification(`🎉 Level Up! You're now ${xpResult.newLevel.title} ${xpResult.newLevel.icon}! +${xpResult.xpAwarded} XP`);
+            } else {
+              setXPNotification(`+${xpResult.xpAwarded} XP earned!`);
+            }
+            
+            // Clear XP notification after 4 seconds
+            setTimeout(() => setXPNotification(null), 4000);
+          }
+
+          // Award streak XP if applicable
+          if (updatedStreak && updatedStreak.current_streak > 1) {
+            const streakXPResult = await XPService.awardStreakXP(user.id, updatedStreak.current_streak);
+            if (streakXPResult.success && streakXPResult.xpAwarded > 0) {
+              // Show streak XP notification (replace or combine with existing)
+              if (streakXPResult.leveledUp && streakXPResult.newLevel) {
+                setTimeout(() => {
+                  setXPNotification(`🎉 Level Up! You're now ${streakXPResult.newLevel.title} ${streakXPResult.newLevel.icon}! +${streakXPResult.xpAwarded} streak XP`);
+                  setTimeout(() => setXPNotification(null), 4000);
+                }, 1000);
+              } else {
+                setTimeout(() => {
+                  setXPNotification(`+${streakXPResult.xpAwarded} streak XP bonus!`);
+                  setTimeout(() => setXPNotification(null), 3000);
+                }, 1000);
+              }
+            }
+          }
+        } catch (xpError) {
+          console.error('Error awarding XP:', xpError);
+          // Don't fail the memory save if XP awarding fails
+        }
+
+        // Refresh XP data in navbar
+        await refreshXP();
         
         return data[0].id;
       }
@@ -495,6 +493,37 @@ export default function MemoryConversation() {
         return;
       }
 
+      // Award XP for blog post creation
+      try {
+        const xpResult = await XPService.awardBlogXP(user.id, blogPost.id);
+
+        if (xpResult.success && xpResult.xpAwarded > 0) {
+          // Show XP notification
+          if (xpResult.leveledUp && xpResult.newLevel) {
+            setXPNotification(`🎉 Level Up! You're now ${xpResult.newLevel.title} ${xpResult.newLevel.icon}! +${xpResult.xpAwarded} XP for creating a blog post!`);
+          } else {
+            setXPNotification(`+${xpResult.xpAwarded} XP for creating a blog post! 📝`);
+          }
+          
+          // Clear notification after 5 seconds
+          setTimeout(() => setXPNotification(null), 5000);
+        }
+      } catch (xpError) {
+        console.error('Error awarding XP for blog post:', xpError);
+        // Don't fail the blog post creation if XP awarding fails
+      }
+
+      // Refresh XP data in navbar
+      await refreshXP();
+
+      // Update blog post count for achievements
+      try {
+        await StreakService.updateBlogPostCount(user.id);
+      } catch (streakError) {
+        console.error('Error updating blog post count:', streakError);
+        // Don't fail the blog post creation if streak update fails
+      }
+
       // Send email to family members if any exist
       if (familyMembers.length > 0) {
         const emailResult = await EmailService.sendBlogToFamily(
@@ -527,70 +556,6 @@ export default function MemoryConversation() {
     }
   };
 
-  const generateBlogPost = async (memory: Memory) => {
-    if (!supabase || !user) return;
-
-    try {
-      // Use Groq AI to generate a beautiful blog post
-      const userContext = user?.user_metadata?.full_name ? 
-        `This memory belongs to ${user.user_metadata.full_name}` : 
-        undefined;
-
-      const blogPostContent = await GroqService.generateBlogPost(
-        memory.content,
-        memory.category,
-        userContext
-      );
-
-      const { data, error } = await supabase
-        .from('blog_posts')
-        .insert([
-          {
-            title: memory.title,
-            content: blogPostContent,
-            memory_id: memory.id,
-            user_id: user.id,
-            published: true,
-          },
-        ])
-        .select()
-        .single();
-
-      if (error) {
-        console.error('Error creating blog post:', error);
-        showDialog('Error', 'Error creating blog post. Please try again.', 'error');
-        return;
-      }
-
-      // Send email to family members if any exist
-      if (familyMembers.length > 0) {
-        const emailResult = await EmailService.sendBlogToFamily(
-          {
-            title: memory.title,
-            content: blogPostContent,
-            authorName: user.user_metadata?.full_name || 'Family Member',
-            topic: memory.category,
-            created_at: new Date().toISOString()
-          },
-          familyMembers,
-          user.user_metadata?.full_name || 'Family Member'
-        );
-
-        if (emailResult.success) {
-          showDialog('Success', `Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`, 'success');
-        } else {
-          showDialog('Warning', 'Blog post created, but failed to send emails to family members.', 'warning');
-        }
-      } else {
-        showDialog('Success', 'Blog post created successfully! Add family members to automatically share future posts.', 'success');
-      }
-
-      return data;
-    } catch (error) {
-      console.error('Error creating blog post:', error);
-      showDialog('Error', 'Error creating blog post. Please try again.', 'error');
-    }
-  };
 
 
   const formatConversationAsBlog = (messages: Message[], topic: string): string => {
@@ -661,23 +626,11 @@ export default function MemoryConversation() {
               Back to Conversations
             </button>
             <button
-              onClick={() => { setShowFamilyMembers(false); setShowMemories(true); }}
-              className="px-4 py-2 btn-primary"
-            >
-              View Memories
-            </button>
-            <button
               onClick={() => { setShowFamilyMembers(false); setShowBlogPosts(true); }}
               className="px-4 py-2 btn-primary"
             >
               View Blog Posts
             </button>
-            <Link
-              href="/streak"
-              className="px-4 py-2 btn-secondary"
-            >
-              My Progress
-            </Link>
           </div>
         </div>
         <FamilyMembers />
@@ -698,12 +651,6 @@ export default function MemoryConversation() {
               Back to Conversations
             </button>
             <button
-              onClick={() => { setShowBlogPosts(false); setShowMemories(true); }}
-              className="px-4 py-2 btn-primary"
-            >
-              View Memories
-            </button>
-            <button
               onClick={() => { setShowBlogPosts(false); setShowFamilyMembers(true); }}
               className="px-4 py-2 btn-secondary"
             >
@@ -722,72 +669,6 @@ export default function MemoryConversation() {
     );
   }
 
-  if (showMemories) {
-    return (
-      <div className="space-y-6">
-        <div className="flex justify-between items-center">
-          <h2 className="text-2xl font-bold text-main">Your Memories</h2>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setShowMemories(false)}
-              className="px-4 py-2 btn-primary"
-            >
-              Back to Conversations
-            </button>
-            <button
-              onClick={() => { setShowMemories(false); setShowBlogPosts(true); }}
-              className="px-4 py-2 btn-primary"
-            >
-              View Blog Posts
-            </button>
-            <button
-              onClick={() => { setShowMemories(false); setShowFamilyMembers(true); }}
-              className="px-4 py-2 btn-secondary"
-            >
-              Family Members
-            </button>
-            <Link
-              href="/streak"
-              className="px-4 py-2 btn-secondary"
-            >
-              My Progress
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid gap-4">
-          {memories.length === 0 ? (
-            <div className="text-center py-8 text-secondary">
-              No memories yet. Start a conversation to create your first memory!
-            </div>
-          ) : (
-            memories.map((memory) => (
-              <div key={memory.id} className="bg-white p-6 rounded-lg shadow border">
-                <div className="flex justify-between items-start mb-2">
-                  <h3 className="text-lg font-semibold text-main">{memory.title}</h3>
-                  <span className="text-sm text-secondary bg-secondary bg-opacity-20 px-2 py-1 rounded">
-                    {memory.category}
-                  </span>
-                </div>
-                <p className="text-gray-700 mb-4">{memory.content}</p>
-                <div className="flex space-x-2">
-                  <button
-                    onClick={() => generateBlogPost(memory)}
-                    className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700"
-                  >
-                    Generate Blog Post
-                  </button>
-                  <span className="text-xs text-gray-400 self-center">
-                    {new Date(memory.created_at).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-    );
-  }
 
   if (!currentTopic) {
     return (
@@ -910,18 +791,6 @@ export default function MemoryConversation() {
           >
             View Blog Posts
           </button>
-          <button
-            onClick={() => setShowFamilyMembers(true)}
-            className="px-4 py-2 btn-secondary"
-          >
-            Family ({familyMembers.length})
-          </button>
-          <Link
-            href="/streak"
-            className="px-4 py-2 btn-secondary"
-          >
-            My Progress
-          </Link>
         </div>
       </div>
 
@@ -999,6 +868,25 @@ export default function MemoryConversation() {
           <li>• Your memories will be automatically saved as you share them</li>
         </ul>
       </div>
+
+      {/* Notifications */}
+      {streakNotification && (
+        <div className="fixed top-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in">
+          <div className="flex items-center">
+            <span className="mr-2">🔥</span>
+            <span>{streakNotification}</span>
+          </div>
+        </div>
+      )}
+
+      {xpNotification && (
+        <div className="fixed top-16 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in">
+          <div className="flex items-center">
+            <span className="mr-2">⭐</span>
+            <span>{xpNotification}</span>
+          </div>
+        </div>
+      )}
 
       {/* Dialog */}
       <Dialog

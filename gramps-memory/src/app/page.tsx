@@ -5,9 +5,10 @@ import { useAuth } from '../contexts/AuthContext';
 import Link from 'next/link';
 import MemoryConversation from '../components/MemoryConversation';
 import VoiceConversation from '../components/VoiceConversation';
+import { calculateLevel, formatXP } from '../utils/xp';
 
 export default function Home() {
-  const { user, signOut, loading } = useAuth();
+  const { user, signOut, loading, userXP } = useAuth();
   const [activeTab, setActiveTab] = useState<'text' | 'voice'>('text');
 
   const getDisplayName = () => {
@@ -68,6 +69,15 @@ export default function Home() {
               <h1 className="nav-title">Gramps Memory</h1>
             </div>
             <div className="flex items-center space-x-4">
+              {/* XP Display */}
+              {userXP && (
+                <div className="flex items-center space-x-2 bg-blue-50 px-3 py-1 rounded-lg">
+                  <span className="text-blue-600 font-bold">{calculateLevel(userXP.total_xp).icon}</span>
+                  <span className="text-blue-800 text-sm font-medium">
+                    Level {userXP.current_level} • {formatXP(userXP.total_xp)} XP
+                  </span>
+                </div>
+              )}
               <Link
                 href="/streak"
                 className="px-4 py-2 btn-secondary text-sm"

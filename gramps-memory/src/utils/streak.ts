@@ -7,6 +7,7 @@ export interface UserStreak {
   longest_streak: number;
   last_activity_date: string | null;
   total_memories: number;
+  total_blog_posts: number;
   created_at: string;
   updated_at: string;
 }
@@ -220,6 +221,68 @@ export class StreakService {
       return streak;
     } catch (error) {
       console.error('Error checking streak:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Update blog post count when a blog post is created
+   */
+  static async updateBlogPostCount(userId: string): Promise<UserStreak | null> {
+    if (!supabase) {
+      console.log('Supabase not configured, skipping blog post count update');
+      return null;
+    }
+
+    try {
+      // Get current streak
+      const { data: streak, error: streakError } = await supabase
+        .from('user_streaks')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
+
+      if (streakError && streakError.code === 'PGRST116') {
+        // Create streak if it doesn't exist
+        const { data: newStreak, error: createError } = await supabase
+          .from('user_streaks')
+          .insert([{ 
+            user_id: userId,
+            total_blog_posts: 1
+          }])
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating streak for blog post:', createError);
+          return null;
+        }
+        return newStreak;
+      } else if (streakError) {
+        console.error('Error fetching streak for blog post:', streakError);
+        return null;
+      }
+
+      // Update blog post count
+      const newBlogPostCount = streak.total_blog_posts + 1;
+      const { data: updatedStreak, error: updateError } = await supabase
+        .from('user_streaks')
+        .update({ 
+          total_blog_posts: newBlogPostCount,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', userId)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Error updating blog post count:', updateError);
+        return null;
+      }
+
+      return updatedStreak;
+    } catch (error) {
+      console.error('Error updating blog post count:', error);
       return null;
     }
   }

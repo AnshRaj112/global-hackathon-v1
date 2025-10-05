@@ -65,7 +65,7 @@ CREATE TABLE IF NOT EXISTS email_logs (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create user_streaks table for tracking daily memory recording streaks
+-- Create user_streaks table for tracking daily activity streaks
 CREATE TABLE IF NOT EXISTS user_streaks (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -73,9 +73,33 @@ CREATE TABLE IF NOT EXISTS user_streaks (
   longest_streak INTEGER DEFAULT 0,
   last_activity_date DATE,
   total_memories INTEGER DEFAULT 0,
+  total_blog_posts INTEGER DEFAULT 0,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   UNIQUE(user_id)
+);
+
+-- Create user_xp table for tracking XP points and levels
+CREATE TABLE IF NOT EXISTS user_xp (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  total_xp INTEGER DEFAULT 0,
+  current_level INTEGER DEFAULT 1,
+  xp_to_next_level INTEGER DEFAULT 50,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  UNIQUE(user_id)
+);
+
+-- Create xp_transactions table for tracking XP history
+CREATE TABLE IF NOT EXISTS xp_transactions (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  xp_amount INTEGER NOT NULL,
+  transaction_type TEXT NOT NULL CHECK (transaction_type IN ('message_sent', 'blog_created', 'streak_bonus', 'achievement', 'family_share', 'voice_recording', 'bonus', 'other')),
+  description TEXT NOT NULL,
+  memory_id UUID REFERENCES memories(id) ON DELETE SET NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
 -- Create daily_activities table for tracking daily memory recording
@@ -97,6 +121,8 @@ ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
 ALTER TABLE family_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE email_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_streaks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_xp ENABLE ROW LEVEL SECURITY;
+ALTER TABLE xp_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE daily_activities ENABLE ROW LEVEL SECURITY;
 
 -- Create RLS policies for memories
@@ -232,6 +258,32 @@ CREATE POLICY "Users can update their own streaks" ON user_streaks
 CREATE POLICY "Users can delete their own streaks" ON user_streaks
   FOR DELETE USING (auth.uid() = user_id);
 
+-- Create RLS policies for user_xp
+CREATE POLICY "Users can view their own XP data" ON user_xp
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own XP data" ON user_xp
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own XP data" ON user_xp
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own XP data" ON user_xp
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Create RLS policies for xp_transactions
+CREATE POLICY "Users can view their own XP transactions" ON xp_transactions
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own XP transactions" ON xp_transactions
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update their own XP transactions" ON xp_transactions
+  FOR UPDATE USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete their own XP transactions" ON xp_transactions
+  FOR DELETE USING (auth.uid() = user_id);
+
 -- Create RLS policies for daily_activities
 CREATE POLICY "Users can view their own daily activities" ON daily_activities
   FOR SELECT USING (auth.uid() = user_id);
@@ -249,3 +301,10 @@ CREATE POLICY "Users can delete their own daily activities" ON daily_activities
 CREATE INDEX IF NOT EXISTS idx_user_streaks_user_id ON user_streaks(user_id);
 CREATE INDEX IF NOT EXISTS idx_daily_activities_user_id ON daily_activities(user_id);
 CREATE INDEX IF NOT EXISTS idx_daily_activities_date ON daily_activities(activity_date);
+
+-- Create indexes for XP tables
+CREATE INDEX IF NOT EXISTS idx_user_xp_user_id ON user_xp(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_xp_level ON user_xp(current_level);
+CREATE INDEX IF NOT EXISTS idx_xp_transactions_user_id ON xp_transactions(user_id);
+CREATE INDEX IF NOT EXISTS idx_xp_transactions_type ON xp_transactions(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_xp_transactions_created_at ON xp_transactions(created_at);

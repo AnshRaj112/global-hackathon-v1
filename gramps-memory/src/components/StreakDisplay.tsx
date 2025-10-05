@@ -11,6 +11,7 @@ interface UserStreak {
   longest_streak: number;
   last_activity_date: string | null;
   total_memories: number;
+  total_blog_posts: number;
   created_at: string;
   updated_at: string;
 }
@@ -74,18 +75,18 @@ export default function StreakDisplay() {
   const generateAchievements = (streakData: UserStreak) => {
     const achievements: Achievement[] = [
       {
-        id: 'first_memory',
-        title: 'First Memory Recorded',
-        description: 'Record your very first memory',
+        id: 'first_blog',
+        title: 'First Blog Sent',
+        description: 'Send your very first blog post',
         icon: '🎉',
-        unlocked: streakData.total_memories >= 1,
-        progress: Math.min(streakData.total_memories, 1),
+        unlocked: streakData.total_blog_posts >= 1,
+        progress: Math.min(streakData.total_blog_posts, 1),
         target: 1
       },
       {
         id: 'week_streak',
         title: '7 Days in a Row',
-        description: 'Record memories for 7 consecutive days',
+        description: 'Have conversations for 7 consecutive days',
         icon: '🔥',
         unlocked: streakData.current_streak >= 7,
         progress: Math.min(streakData.current_streak, 7),
@@ -94,37 +95,37 @@ export default function StreakDisplay() {
       {
         id: 'month_streak',
         title: '30 Days in a Row',
-        description: 'Record memories for 30 consecutive days',
+        description: 'Have conversations for 30 consecutive days',
         icon: '💪',
         unlocked: streakData.current_streak >= 30,
         progress: Math.min(streakData.current_streak, 30),
         target: 30
       },
       {
-        id: 'hundred_memories',
-        title: '100 Memories Saved',
-        description: 'Save 100 precious memories',
+        id: 'hundred_blogs',
+        title: '100 Blogs Sent',
+        description: 'Send 100 blog posts to your family',
         icon: '📚',
-        unlocked: streakData.total_memories >= 100,
-        progress: Math.min(streakData.total_memories, 100),
+        unlocked: streakData.total_blog_posts >= 100,
+        progress: Math.min(streakData.total_blog_posts, 100),
         target: 100
       },
       {
-        id: 'five_hundred_memories',
-        title: '500 Memories Saved',
-        description: 'Save 500 precious memories',
+        id: 'five_hundred_blogs',
+        title: '500 Blogs Sent',
+        description: 'Send 500 blog posts to your family',
         icon: '🏆',
-        unlocked: streakData.total_memories >= 500,
-        progress: Math.min(streakData.total_memories, 500),
+        unlocked: streakData.total_blog_posts >= 500,
+        progress: Math.min(streakData.total_blog_posts, 500),
         target: 500
       },
       {
-        id: 'thousand_memories',
-        title: '1000 Memories Saved',
-        description: 'Save 1000 precious memories',
+        id: 'thousand_blogs',
+        title: '1000 Blogs Sent',
+        description: 'Send 1000 blog posts to your family',
         icon: '👑',
-        unlocked: streakData.total_memories >= 1000,
-        progress: Math.min(streakData.total_memories, 1000),
+        unlocked: streakData.total_blog_posts >= 1000,
+        progress: Math.min(streakData.total_blog_posts, 1000),
         target: 1000
       }
     ];

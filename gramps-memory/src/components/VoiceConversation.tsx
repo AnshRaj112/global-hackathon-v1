@@ -5,6 +5,8 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { EmailService, FamilyMember } from '../utils/email';
 import { getDailyConversationTopics, ConversationTopic } from '../utils/conversationTopics';
+import { XPService } from '../utils/xpService';
+import { calculateLevel, formatXP } from '../utils/xp';
 import Dialog from './Dialog';
 
 interface VoiceMessage {
@@ -39,6 +41,7 @@ export default function VoiceConversation() {
   const [conversationText, setConversationText] = useState('');
   const [recordingTimeout, setRecordingTimeout] = useState<NodeJS.Timeout | null>(null);
   const [recognitionState, setRecognitionState] = useState<'idle' | 'starting' | 'running' | 'stopping'>('idle');
+  const [xpNotification, setXPNotification] = useState<string | null>(null);
   const [dialog, setDialog] = useState<{
     isOpen: boolean;
     title: string;
@@ -51,7 +54,7 @@ export default function VoiceConversation() {
     type: 'info'
   });
   
-  const { user } = useAuth();
+  const { user, userXP, refreshXP } = useAuth();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const synthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
@@ -255,6 +258,26 @@ export default function VoiceConversation() {
           .join(' ');
         return conversationContent;
       });
+
+      // Award XP for voice message sent
+      if (user) {
+        try {
+          const xpResult = await XPService.awardMessageXP(user.id, 'voice');
+          if (xpResult.success && xpResult.xpAwarded > 0) {
+            if (xpResult.leveledUp && xpResult.newLevel) {
+              setXPNotification(`🎉 Level Up! You're now ${xpResult.newLevel.title} ${xpResult.newLevel.icon}! +${xpResult.xpAwarded} XP`);
+            } else {
+              setXPNotification(`+${xpResult.xpAwarded} XP for voice message!`);
+            }
+            setTimeout(() => setXPNotification(null), 4000);
+          }
+        } catch (xpError) {
+          console.error('Error awarding voice XP:', xpError);
+        }
+
+        // Refresh XP data in navbar
+        await refreshXP();
+      }
 
     } catch (error) {
       console.error('Error generating response:', error);
@@ -620,6 +643,24 @@ export default function VoiceConversation() {
         return;
       }
 
+      // Award XP for blog post creation
+      try {
+        const xpResult = await XPService.awardBlogXP(user.id, blogData.id);
+        if (xpResult.success && xpResult.xpAwarded > 0) {
+          if (xpResult.leveledUp && xpResult.newLevel) {
+            setXPNotification(`🎉 Level Up! You're now ${xpResult.newLevel.title} ${xpResult.newLevel.icon}! +${xpResult.xpAwarded} XP`);
+          } else {
+            setXPNotification(`+${xpResult.xpAwarded} XP for creating blog post!`);
+          }
+          setTimeout(() => setXPNotification(null), 4000);
+        }
+      } catch (xpError) {
+        console.error('Error awarding blog XP:', xpError);
+      }
+
+      // Refresh XP data in navbar
+      await refreshXP();
+
       // Send email to family members if any exist
       if (familyMembers.length > 0) {
         const emailResult = await EmailService.sendBlogToFamily(
@@ -635,6 +676,26 @@ export default function VoiceConversation() {
         );
 
         if (emailResult.success) {
+          // Award XP for family sharing
+          try {
+            const shareXPResult = await XPService.awardFamilyShareXP(user.id, emailResult.sent);
+            if (shareXPResult.success && shareXPResult.xpAwarded > 0) {
+              setTimeout(() => {
+                if (shareXPResult.leveledUp && shareXPResult.newLevel) {
+                  setXPNotification(`🎉 Level Up! You're now ${shareXPResult.newLevel.title} ${shareXPResult.newLevel.icon}! +${shareXPResult.xpAwarded} sharing XP`);
+                } else {
+                  setXPNotification(`+${shareXPResult.xpAwarded} XP for sharing with family!`);
+                }
+                setTimeout(() => setXPNotification(null), 4000);
+              }, 1000);
+            }
+          } catch (shareXPError) {
+            console.error('Error awarding family share XP:', shareXPError);
+          }
+
+          // Refresh XP data in navbar after family share XP
+          await refreshXP();
+
           showDialog('Success', `Blog post created and sent to ${emailResult.sent} family member(s)! ${emailResult.failed > 0 ? `${emailResult.failed} failed to send.` : ''}`, 'success');
         } else {
           showDialog('Warning', 'Blog post created, but failed to send emails to family members.', 'warning');
@@ -765,12 +826,6 @@ export default function VoiceConversation() {
 
         <div className="text-center space-x-4">
           <button
-            onClick={() => setShowFamilyMembers(true)}
-            className="px-6 py-3 btn-secondary"
-          >
-            Family Members ({familyMembers.length})
-          </button>
-          <button
             onClick={() => setShowBlogPosts(true)}
             className="px-6 py-3 btn-primary"
           >
@@ -787,6 +842,22 @@ export default function VoiceConversation() {
         <div>
           <h2 className="text-2xl font-bold text-main">{currentTopic.title}</h2>
           <p className="text-secondary">{currentTopic.description}</p>
+          {/* XP Level Display */}
+          {userXP && (
+            <div className="mt-2 flex items-center space-x-2">
+              <div className="bg-blue-50 px-3 py-1 rounded-lg flex items-center space-x-2">
+                <span className="text-blue-600 font-bold text-lg">
+                  {calculateLevel(userXP.total_xp).icon}
+                </span>
+                <span className="text-blue-800 text-sm font-medium">
+                  Level {userXP.current_level} • {formatXP(userXP.total_xp)} XP
+                </span>
+              </div>
+              <span className="text-sm text-gray-600">
+                {calculateLevel(userXP.total_xp).title}
+              </span>
+            </div>
+          )}
         </div>
         <div className="flex space-x-2">
           <button
@@ -805,21 +876,9 @@ export default function VoiceConversation() {
             </button>
           )}
           <button
-            onClick={() => setShowFamilyMembers(true)}
-            className="px-4 py-2 btn-secondary"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
-            Family ({familyMembers.length})
-          </button>
-          <button
             onClick={() => setShowBlogPosts(true)}
             className="px-4 py-2 btn-primary"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
-            </svg>
             View Blog Posts
           </button>
         </div>
@@ -916,6 +975,16 @@ export default function VoiceConversation() {
           <li>• Create a blog post anytime to share with family members</li>
         </ul>
       </div>
+
+      {/* XP Notifications */}
+      {xpNotification && (
+        <div className="fixed top-4 right-4 bg-blue-500 text-white px-6 py-3 rounded-lg shadow-lg z-50 animate-slide-in">
+          <div className="flex items-center">
+            <span className="mr-2">⭐</span>
+            <span>{xpNotification}</span>
+          </div>
+        </div>
+      )}
 
       {/* Dialog */}
       <Dialog
