@@ -311,8 +311,9 @@ export default function MemoryConversation() {
             if (streakXPResult.success && streakXPResult.xpAwarded > 0) {
               // Show streak XP notification (replace or combine with existing)
               if (streakXPResult.leveledUp && streakXPResult.newLevel) {
+                const level = streakXPResult.newLevel;
                 setTimeout(() => {
-                  setXPNotification(`🎉 Level Up! You're now ${streakXPResult.newLevel.title} ${streakXPResult.newLevel.icon}! +${streakXPResult.xpAwarded} streak XP`);
+                  setXPNotification(`🎉 Level Up! You're now ${level.title} ${level.icon}! +${streakXPResult.xpAwarded} streak XP`);
                   setTimeout(() => setXPNotification(null), 4000);
                 }, 1000);
               } else {

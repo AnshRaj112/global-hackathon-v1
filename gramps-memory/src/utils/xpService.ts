@@ -2,6 +2,7 @@
 import { supabase } from './supabase';
 import { 
   UserXP, 
+  LevelInfo,
   calculateLevel, 
   calculateXPProgress, 
   checkLevelUp,
@@ -31,7 +32,7 @@ export class XPService {
     transactionType: string, 
     description: string,
     memoryId?: string
-  ): Promise<{ success: boolean; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     if (!supabase) {
       return { success: false, error: 'Supabase not configured' };
     }
@@ -114,7 +115,7 @@ export class XPService {
   static async awardMessageXP(
     userId: string,
     messageType: 'text' | 'voice' = 'text'
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     const xpAmount = calculateMessageXP();
     
     const result = await this.awardXP(
@@ -137,7 +138,7 @@ export class XPService {
   static async awardStreakXP(
     userId: string,
     streakCount: number
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     const xpAmount = calculateStreakXP(streakCount);
     
     if (xpAmount === 0) {
@@ -164,7 +165,7 @@ export class XPService {
   static async awardAchievementXP(
     userId: string,
     achievementTitle: string
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     const result = await this.awardXP(
       userId,
       XP_REWARDS.ACHIEVEMENT_UNLOCKED,
@@ -185,7 +186,7 @@ export class XPService {
   static async awardBlogXP(
     userId: string,
     blogPostId: string
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     const xpAmount = calculateBlogXP();
     
     const result = await this.awardXP(
@@ -193,7 +194,7 @@ export class XPService {
       xpAmount,
       'blog_created',
       'Created a blog post',
-      undefined
+      blogPostId
     );
 
     return {
@@ -208,7 +209,7 @@ export class XPService {
   static async awardFamilyShareXP(
     userId: string,
     familyMemberCount: number
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     const xpAmount = XP_REWARDS.FAMILY_SHARE * familyMemberCount;
     
     const result = await this.awardXP(
@@ -231,7 +232,7 @@ export class XPService {
   static async awardVoiceXP(
     userId: string,
     recordingDuration?: number
-  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: any; error?: string }> {
+  ): Promise<{ success: boolean; xpAwarded: number; leveledUp?: boolean; newLevel?: LevelInfo | null; error?: string }> {
     let xpAmount = XP_REWARDS.VOICE_RECORDING;
     
     // Bonus for longer recordings

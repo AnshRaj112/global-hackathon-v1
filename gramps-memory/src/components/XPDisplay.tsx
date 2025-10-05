@@ -5,13 +5,13 @@ import { supabase } from '../utils/supabase';
 import { useAuth } from '../contexts/AuthContext';
 import { 
   UserXP, 
+  LevelInfo,
   calculateLevel, 
   calculateXPProgress, 
   getNextLevel, 
   formatXP,
   getMotivationalMessage,
-  getLevelBenefits,
-  LEVELS
+  getLevelBenefits
 } from '../utils/xp';
 
 interface XPTransaction {
@@ -28,7 +28,7 @@ export default function XPDisplay() {
   const [recentTransactions, setRecentTransactions] = useState<XPTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [showLevelUp, setShowLevelUp] = useState(false);
-  const [newLevel, setNewLevel] = useState<any>(null);
+  const [newLevel] = useState<LevelInfo | null>(null);
 
   const fetchXPData = async () => {
     if (!supabase || !user) return;
