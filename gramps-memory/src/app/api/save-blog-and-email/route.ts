@@ -182,8 +182,22 @@ export async function POST(request: NextRequest) {
 }
 
 function formatMessagesAsBlog(messages: Array<{role: string, content: string, created_at: string}>, topic: string): string {
-  let blogContent = `${topic}\n\n`;
-  blogContent += `This memory was captured through conversation and preserved for future generations.\n\n`;
+  // Extract user messages to understand the actual content
+  const userMessages = messages.filter(msg => msg.role === 'user').map(msg => msg.content);
+  const assistantMessages = messages.filter(msg => msg.role === 'assistant').map(msg => msg.content);
+  
+  // Create a more contextual introduction based on the actual conversation
+  let blogContent = '';
+  
+  if (userMessages.length > 0) {
+    const firstMessage = userMessages[0];
+    // Create a more natural introduction that reflects what was actually discussed
+    blogContent += `In this conversation about ${topic.toLowerCase()}, the family member shared: "${firstMessage}"\n\n`;
+  } else {
+    blogContent += `${topic}\n\n`;
+    blogContent += `This memory was captured through conversation and preserved for future generations.\n\n`;
+  }
+  
   blogContent += `---\n\n`;
 
   let currentSpeaker = '';

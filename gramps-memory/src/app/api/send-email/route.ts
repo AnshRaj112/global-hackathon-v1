@@ -87,6 +87,30 @@ function generateEmailTemplate(
   familyMember: FamilyMember,
   senderName: string
 ): string {
+  // Extract the first user message to create a personalized greeting
+  const contentLines = blogPost.content.split('\n');
+  let firstUserMessage = '';
+  let foundUserSection = false;
+  
+  for (const line of contentLines) {
+    if (line.includes('Family Member:')) {
+      foundUserSection = true;
+      continue;
+    }
+    if (foundUserSection && line.trim() && !line.includes('AI Assistant:')) {
+      firstUserMessage = line.trim();
+      break;
+    }
+    if (line.includes('AI Assistant:')) {
+      break;
+    }
+  }
+  
+  // Create a personalized greeting based on the actual conversation content
+  const personalizedGreeting = firstUserMessage 
+    ? `Dear ${familyMember.name},<br><br>I wanted to share a special memory with you. ${senderName} recently shared this story: "${firstUserMessage}"`
+    : `Dear ${familyMember.name},<br><br>I wanted to share a special memory with you from ${senderName}.`;
+
   return `
 <!DOCTYPE html>
 <html>
@@ -126,6 +150,12 @@ function generateEmailTemplate(
             font-size: 16px;
             font-style: italic;
         }
+        .greeting {
+            color: #2c3e50;
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
         .content {
             font-size: 16px;
             line-height: 1.8;
@@ -138,11 +168,6 @@ function generateEmailTemplate(
             color: #7f8c8d;
             font-size: 14px;
         }
-        .greeting {
-            color: #2c3e50;
-            font-size: 18px;
-            margin-bottom: 20px;
-        }
     </style>
 </head>
 <body>
@@ -152,6 +177,9 @@ function generateEmailTemplate(
             <p class="subtitle">A ${blogPost.topic} memory from ${senderName}</p>
         </div>
         
+        <div class="greeting">
+            ${personalizedGreeting}
+        </div>
         
         <div class="content">
             ${blogPost.content.replace(/\n/g, '<br>')}
