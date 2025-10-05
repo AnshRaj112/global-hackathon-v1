@@ -579,9 +579,9 @@ export default function MemoryConversation() {
         // If it's the first response, start with a topic-related sentence
         if (i === 0) {
           if (topic.toLowerCase().includes('childhood')) {
-            story += `My childhood home was ${content.toLowerCase()}!\n\n`;
+            story += `Hi there ${content.toLowerCase()}!\n\n`;
           } else if (topic.toLowerCase().includes('family')) {
-            story += `My family was ${content.toLowerCase()}!\n\n`;
+            story += `Hi there ${content.toLowerCase()}!\n\n`;
           } else {
             story += `${content}\n\n`;
           }
