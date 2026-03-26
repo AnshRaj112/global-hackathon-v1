@@ -11,8 +11,8 @@ A Next.js application that helps elderly users preserve and share their precious
   - Session management
 
 - 💬 **AI Memory Conversations**
-  - Text-based conversations with Groq AI
-  - Voice conversations with Google Gemini AI
+  - Text-based conversations with Groq AI (`llama-3.1-8b-instant`)
+  - Voice conversations with Google Gemini AI (`gemini-1.5-flash`)
   - Intelligent follow-up questions
   - Memory categorization and organization
 

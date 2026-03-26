@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import Groq from 'groq-sdk';
+import { GROQ_MODEL } from '../../../constants/models';
 
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY || '',
@@ -77,7 +78,7 @@ Keep responses conversational, warm, and encouraging. Ask one focused question a
     
     const completion = await groq.chat.completions.create({
       messages: chatMessages,
-      model: 'llama-3.1-8b-instant',
+      model: GROQ_MODEL,
       temperature: 0.7,
       max_tokens: 500,
       stream: false,
@@ -152,7 +153,7 @@ Transform this memory into a beautiful blog post:`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: memory }
       ],
-      model: 'llama-3.1-8b-instant',
+      model: GROQ_MODEL,
       temperature: 0.8,
       max_tokens: 1000,
       stream: false,

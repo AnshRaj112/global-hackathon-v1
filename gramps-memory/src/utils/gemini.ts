@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { GEMINI_MODEL } from '../constants/models';
 
 export interface GeminiMessage {
   role: 'user' | 'model';
@@ -38,7 +39,7 @@ export class GeminiService {
         throw new Error('Gemini API not configured');
       }
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
       const systemPrompt = `You are a compassionate AI assistant designed to help elderly people preserve their precious memories and life stories through voice conversations. Your role is to:
 
@@ -110,7 +111,7 @@ Keep responses conversational, warm, and encouraging. Ask one focused question a
         throw new Error('Gemini API not configured');
       }
 
-      const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+      const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
       const prompt = `You are a professional writer specializing in family history and memoir writing. Your task is to transform a voice conversation about memories into a beautiful, engaging blog post that family members will treasure.
 
